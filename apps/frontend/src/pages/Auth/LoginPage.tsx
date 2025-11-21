@@ -1,15 +1,29 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../../api/client';
 
 export const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Logging in with:', { username, password });
-    // TODO: Implement actual login logic
+    setError(null);
+    
+    try {
+      const response = await apiClient.post('/auth/login', { username, password });
+      if (response.data && response.data.access_token) {
+        localStorage.setItem('access_token', response.data.access_token);
+        navigate('/dashboard');
+      }
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      setError('Invalid credentials. Please try again.');
+    }
   };
 
   return (
@@ -21,6 +35,11 @@ export const LoginPage: React.FC = () => {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
+          {error && (
+            <div className="bg-red-900/30 border border-red-800 text-red-200 text-sm p-3 rounded-md">
+              {error}
+            </div>
+          )}
           <div className="space-y-2">
             <div className="relative">
               <input

@@ -7,6 +7,7 @@ import { resolveDynamicParameters } from '../../../../packages/shared/src/utils/
 import { VaultService } from '../vault/vault.service';
 import { ActionRunnerService } from './node-runners/action-runner.service';
 import { LoggerService } from '../common/logger/logger.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ExecutionService {
@@ -14,6 +15,7 @@ export class ExecutionService {
     private readonly vaultService: VaultService,
     private readonly actionRunnerService: ActionRunnerService,
     private readonly logger: LoggerService,
+    private readonly prisma: PrismaService,
     // TODO: Inject BullMQ Queue
     // @InjectQueue('workflow-queue') private workflowQueue: Queue
   ) {
@@ -233,18 +235,8 @@ export class ExecutionService {
    * @param executionId The ID of the execution.
    */
   async getExecution(executionId: string): Promise<IExecutionResult | null> {
-    // TODO: Implement Prisma fetch
-    // return this.prisma.execution.findUnique({ where: { id: executionId } });
-    
-    // Mock response for frontend polling demonstration
-    return {
-      id: executionId,
-      workflowId: 'mock-workflow-id',
-      status: ExecutionStatus.SUCCESS,
-      startTime: new Date(),
-      endTime: new Date(),
-      nodeResults: []
-    };
+    const execution = await this.prisma.execution.findUnique({ where: { id: executionId } });
+    return execution as any;
   }
 
   /**

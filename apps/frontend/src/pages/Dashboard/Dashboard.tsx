@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Sidebar } from '../../components/Layout/Sidebar';
 import { 
-  LayoutDashboard, 
-  Workflow, 
-  FileText, 
-  Link as LinkIcon, 
-  Settings, 
-  HelpCircle, 
   Plus, 
   Search, 
   MoreVertical, 
   ArrowUp, 
-  ArrowDown, 
   Minus 
 } from 'lucide-react';
 
@@ -52,33 +46,10 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-[#0d1117] text-gray-300 font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-[#30363d] flex flex-col bg-[#0d1117]">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[#0d1117] font-bold text-xs">
-            S6S
-          </div>
-          <div>
-            <h1 className="font-bold text-white leading-tight">s6s</h1>
-            <p className="text-[10px] text-gray-500 font-medium">Workflow Automation</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 px-4 space-y-1 mt-4">
-          <NavItem icon={<LayoutDashboard size={18} />} label="Dashboard" active />
-          <NavItem icon={<Workflow size={18} />} label="Workflows" />
-          <NavItem icon={<FileText size={18} />} label="Logs" />
-          <NavItem icon={<LinkIcon size={18} />} label="Connections" />
-        </nav>
-
-        <div className="p-4 border-t border-[#30363d] space-y-1">
-          <NavItem icon={<Settings size={18} />} label="Settings" />
-          <NavItem icon={<HelpCircle size={18} />} label="Help" />
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Main Content */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 ml-64 p-8 overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
@@ -186,20 +157,6 @@ export const Dashboard: React.FC = () => {
 };
 
 // Helper Components
-
-const NavItem: React.FC<{ icon: React.ReactNode; label: string; active?: boolean }> = ({ icon, label, active }) => (
-  <a 
-    href="#" 
-    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-      active 
-        ? 'bg-[#1f6feb]/10 text-[#58a6ff]' 
-        : 'text-gray-400 hover:text-white hover:bg-[#161b22]'
-    }`}
-  >
-    {icon}
-    {label}
-  </a>
-);
 
 const SummaryCard: React.FC<{ title: string; value: string; trend: string; trendColor: string; trendIcon: React.ReactNode }> = ({ 
   title, value, trend, trendColor, trendIcon 

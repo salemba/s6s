@@ -59,6 +59,7 @@ enum RoleName {
 model User {
   id          String        @id @default(uuid())
   email       String        @unique
+  password    String
   displayName String?
   // Roles: many-to-many via RoleAssignment
   roleAssignments RoleAssignment[]
@@ -180,6 +181,8 @@ model Credential {
   iv            Bytes            // initialization vector
   authTag       Bytes            // GCM authentication tag
   keyVersion    Int              @default(1) // supports key rotation tracking
+  isQuantum     Boolean          @default(false) // Flag for Post-Quantum Cryptography (Kyber-1024)
+  kyberCipher   Bytes?           // Encapsulated Key for Kyber-1024
 
   // Optional structured metadata (e.g., expiration, provider info)
   metaJson      Json?

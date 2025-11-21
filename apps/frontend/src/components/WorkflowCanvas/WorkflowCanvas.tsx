@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ReactFlow, {
   ReactFlowProvider,
   Controls,
@@ -43,6 +44,7 @@ export interface WorkflowCanvasProps {
 }
 
 export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: propNodeResults, workflowId: propWorkflowId }) => {
+  const navigate = useNavigate();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -355,7 +357,10 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-[#30363d] bg-[#161b22] px-4 shrink-0">
         <div className="flex items-center gap-4">
-          <button className="text-gray-400 hover:text-gray-200">
+          <button 
+            className="text-gray-400 hover:text-gray-200 cursor-pointer"
+            onClick={() => navigate('/dashboard')}
+          >
             <ArrowLeft size={20} />
           </button>
           <div className="flex flex-col">

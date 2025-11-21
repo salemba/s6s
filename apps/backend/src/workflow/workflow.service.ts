@@ -1,65 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { CreateWorkflowDto } from './workflow.dto';
-// import { PrismaService } from '../prisma/prisma.service'; // Assuming a PrismaService exists or will exist
+import { CreateWorkflowDto, UpdateWorkflowDto } from './workflow.dto';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class WorkflowService {
   constructor(
-    // private prisma: PrismaService
+    private prisma: PrismaService
   ) {}
 
-  /**
-   * Saves a workflow definition to the database.
-   * Creates a new record or updates if it exists (upsert logic).
-   * 
-   * @param definition The workflow definition DTO.
-   * @returns The saved workflow record.
-   */
-  async saveWorkflow(definition: CreateWorkflowDto): Promise<any> {
-    // TODO: Implement Prisma/TypeORM logic
-    // return this.prisma.workflow.upsert({
-    //   where: { id: definition.id || 'new-uuid' },
-    //   update: {
-    //     name: definition.name,
-    //     description: definition.description,
-    //     nodes: {
-    //       deleteMany: {},
-    //       create: definition.nodes.map(node => ({ ...mapNodeToSchema(node) }))
-    //     },
-    //     isActive: definition.isActive,
-    //     updatedAt: new Date(),
-    //   },
-    //   create: {
-    //     name: definition.name,
-    //     description: definition.description,
-    //     ownerId: 'current-user-id', // Needs context
-    //     nodes: {
-    //       create: definition.nodes.map(node => ({ ...mapNodeToSchema(node) }))
-    //     },
-    //     isActive: definition.isActive,
-    //   }
-    // });
-
-    console.log('Saving workflow:', definition.name);
-    return { ...definition, savedAt: new Date() }; // Placeholder return
+  async findAll() {
+    return this.prisma.workflow.findMany();
   }
 
-  /**
-   * Retrieves a workflow by its ID.
-   * 
-   * @param id The unique identifier of the workflow.
-   * @returns The workflow record with nodes included.
-   */
-  async getWorkflow(id: string): Promise<any> {
-    // TODO: Implement Prisma/TypeORM logic
-    // return this.prisma.workflow.findUnique({
-    //   where: { id },
-    //   include: {
-    //     nodes: true,
-    //   }
-    // });
+  async findOne(id: string) {
+    return this.prisma.workflow.findUnique({ where: { id } });
+  }
 
-    console.log('Fetching workflow:', id);
-    return { id, name: 'Placeholder Workflow', nodes: [] }; // Placeholder return
+  async create(data: CreateWorkflowDto) {
+    return this.prisma.workflow.create({ data: data as any });
+  }
+
+  async update(id: string, data: UpdateWorkflowDto) {
+    return this.prisma.workflow.update({ where: { id }, data: data as any });
+  }
+
+  async delete(id: string) {
+    return this.prisma.workflow.delete({ where: { id } });
   }
 }

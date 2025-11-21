@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { WorkflowModule } from './workflow/workflow.module';
 import { ExecutionModule } from './execution/execution.module';
 import { LoggerModule } from './common/logger/logger.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { LoggerModule } from './common/logger/logger.module';
       // validationSchema: Joi.object({ ... }) // TODO: Add Joi validation
     }),
     LoggerModule,
+    PrismaModule,
     AuthModule,
     WorkflowModule,
     ExecutionModule,

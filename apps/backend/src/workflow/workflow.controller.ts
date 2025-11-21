@@ -1,33 +1,40 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards } from '@nestjs/common';
 import { WorkflowService } from './workflow.service';
-import { CreateWorkflowDto } from './workflow.dto';
+import { CreateWorkflowDto, UpdateWorkflowDto } from './workflow.dto';
 import { ExecutionService } from '../execution/execution.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('workflows')
+@UseGuards(JwtAuthGuard)
 export class WorkflowController {
   constructor(
     private readonly workflowService: WorkflowService,
     private readonly executionService: ExecutionService
   ) {}
 
-  /**
-   * Create or Update a workflow.
-   * 
-   * @param createWorkflowDto The workflow definition payload.
-   */
   @Post()
-  async saveWorkflow(@Body() createWorkflowDto: CreateWorkflowDto) {
-    return this.workflowService.saveWorkflow(createWorkflowDto);
+  async create(@Body() createWorkflowDto: CreateWorkflowDto) {
+    return this.workflowService.create(createWorkflowDto);
   }
 
-  /**
-   * Get a workflow by ID.
-   * 
-   * @param id The workflow ID.
-   */
+  @Get()
+  async findAll() {
+    return this.workflowService.findAll();
+  }
+
   @Get(':id')
-  async getWorkflow(@Param('id') id: string) {
-    return this.workflowService.getWorkflow(id);
+  async findOne(@Param('id') id: string) {
+    return this.workflowService.findOne(id);
+  }
+
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() updateWorkflowDto: UpdateWorkflowDto) {
+    return this.workflowService.update(id, updateWorkflowDto);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.workflowService.delete(id);
   }
 
   /**
@@ -45,16 +52,5 @@ export class WorkflowController {
     // TODO: Retrieve the actual execution ID from the queue job
     const executionId = 'exec-' + Date.now(); 
     return { executionId };
-  }
-
-  /**
-   * Get execution status.
-   * 
-   * @param id The execution ID.
-   */
-  @Get('execution/:id')
-  async getExecution(@Param('id') id: string) {
-    // The user requested 'getExecutionStatus', mapping to 'getExecution'
-    return this.executionService.getExecution(id);
   }
 }

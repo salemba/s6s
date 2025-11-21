@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { VaultService } from './vault.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { LocalAuthGuard } from '../auth/local-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('credentials')
+@UseGuards(JwtAuthGuard)
 export class VaultController {
   constructor(
     private readonly vaultService: VaultService,
@@ -14,51 +15,54 @@ export class VaultController {
    * Create a new credential.
    * Encrypts the value before saving to the database.
    */
-  // @UseGuards(LocalAuthGuard)
   @Post()
-  async createCredential(@Body() body: { name: string; type: string; value: string }, @Req() req: any) {
-    // TEMPORARY: Force no user to avoid FK constraints and Auth issues
-    const userId = null;
-    const scope = 'GLOBAL';
+  async createCredential(@Body() body: { name: string; type: string; value: string; isQuantum?: boolean }, @Req() req: any) {
+    const userId = req.user.userId;
+    const scope = 'USER'; // Defaulting to USER scope for now
 
-    const { name, type, value } = body;
+    const { name, type, value, isQuantum } = body;
     
     // Encrypt the secret value
-    // The vault service returns "IV|AuthTag|CipherText"
-    const encryptedString = await this.vaultService.encryptSecret(value);
+    let encryptedString: string;
+    if (isQuantum) {
+      encryptedString = await this.vaultService.encryptQuantum(value);
+    } else {
+      encryptedString = await this.vaultService.encryptSecret(value);
+    }
     
     // Split the string to store in separate columns as per schema
-    const [ivHex, authTagHex, cipherTextHex] = encryptedString.split('|');
+    const parts = encryptedString.split('|');
+    const ivHex = parts[0];
+    const authTagHex = parts[1];
+    const cipherTextBase64 = parts[2];
+    const kyberCipherBase64 = parts.length === 4 ? parts[3] : null;
 
     // Save to Prisma
-    // Note: We are using a simplified schema assumption here. 
-    // If the schema expects Bytes, we convert from Hex.
     const credential = await this.prisma.credential.create({
       data: {
         name,
-        // type is not in the schema, storing it in metaJson for now
         metaJson: { type },
-        scope: 'GLOBAL', 
-        // userId: null, // Explicitly removing to rely on default null
-        // projectId: 'default-project',
-        cipherText: Buffer.from(cipherTextHex, 'base64'), // VaultService returns base64 for cipher
+        scope: 'USER', 
+        userId: userId,
+        cipherText: Buffer.from(cipherTextBase64, 'base64'),
         iv: Buffer.from(ivHex, 'hex'),
         authTag: Buffer.from(authTagHex, 'hex'),
+        isQuantum: !!isQuantum,
+        kyberCipher: kyberCipherBase64 ? Buffer.from(kyberCipherBase64, 'base64') : null,
       },
     });
 
-    return { id: credential.id, name: credential.name, type };
+    return { id: credential.id, name: credential.name, type, isQuantum: credential.isQuantum };
   }
 
   /**
    * List all credentials for the current user.
    * Does NOT return the secret value.
    */
-  // @UseGuards(LocalAuthGuard)
   @Get()
   async listCredentials(@Req() req: any) {
-    // TEMPORARY: Force no user to avoid FK constraints and Auth issues
-    const userId = null;
+    const userId = req.user.userId;
+    console.log(`Listing credentials for user: ${userId}`);
 
     const credentials = await this.prisma.credential.findMany({
       where: {
@@ -68,9 +72,11 @@ export class VaultController {
         id: true,
         name: true,
         metaJson: true,
-        createdAt: true
+        createdAt: true,
+        isQuantum: true,
       }
     });
+    console.log(`Found ${credentials.length} credentials`);
     return credentials.map(c => ({
       ...c,
       type: (c.metaJson as any)?.type || 'unknown'

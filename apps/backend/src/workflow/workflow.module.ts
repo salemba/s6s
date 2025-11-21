@@ -4,14 +4,14 @@ import { ConfigModule } from '@nestjs/config';
 import { WorkflowController } from './workflow.controller';
 import { WorkflowService } from './workflow.service';
 import { ExecutionModule } from '../execution/execution.module';
-import { ExecutionService } from '../execution/execution.service';
-import { ActionRunnerService } from '../execution/node-runners/action-runner.service';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [
     HttpModule,
     ConfigModule,
-    ExecutionModule
+    ExecutionModule,
+    PrismaModule
   ],
   controllers: [WorkflowController],
   providers: [WorkflowService],
