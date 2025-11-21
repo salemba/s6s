@@ -1,0 +1,235 @@
+// Prisma schema for s6s workflow automation platform
+// Focus: Relationships between Workflow, Node, and Credential
+// Includes supporting models: User, Role, Execution
+// PostgreSQL datasource
+
+// =============================
+// Datasource & Generator
+// =============================
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// =============================
+// Enums
+// =============================
+enum NodeType {
+  TRIGGER_WEBHOOK
+  TRIGGER_CRON
+  TRIGGER_POLLING
+  ACTION_HTTP
+  ACTION_DB_QUERY
+  ACTION_SLACK
+  ACTION_AWS
+  LOGIC_IF
+  LOGIC_MERGE
+  LOGIC_WAIT
+  CODE_CUSTOM
+}
+
+enum ExecutionStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum CredentialScope {
+  GLOBAL
+  PROJECT // Reserved for future Project scoping
+  USER
+}
+
+enum RoleName {
+  VIEWER
+  EDITOR
+  ADMIN
+  AUDITOR
+}
+
+// =============================
+// Models
+// =============================
+model User {
+  id          String        @id @default(uuid())
+  email       String        @unique
+  displayName String?
+  // Roles: many-to-many via RoleAssignment
+  roleAssignments RoleAssignment[]
+  // User-scoped credentials
+  credentials Credential[]
+  // Executions triggered by user
+  executions  Execution[]   @relation("TriggeredExecutions")
+  workflows   Workflow[]    @relation("OwnerWorkflows")
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Role {
+  id        String          @id @default(uuid())
+  name      RoleName
+  // assignments
+  assignments RoleAssignment[]
+
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([name])
+}
+
+model RoleAssignment {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  // Optional scoping to workflow for finer-grained RBAC
+  workflowId String?  // null => global platform role scope
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  workflow  Workflow? @relation(fields: [workflowId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([roleId])
+  @@index([workflowId])
+  @@unique([userId, roleId, workflowId])
+}
+
+model Workflow {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  ownerId     String
+  // Nodes composing this workflow
+  nodes       Node[]
+  // Executions of this workflow
+  executions  Execution[]
+  // Ownership relation
+  owner       User        @relation("OwnerWorkflows", fields: [ownerId], references: [id])
+
+  version     Int         @default(1)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([ownerId, name]) // Owner-specific unique name
+  workflowRoleAssignments RoleAssignment[]
+}
+
+model Node {
+  id          String      @id @default(uuid())
+  workflowId  String
+  name        String      // Human-friendly step name; unique per workflow for template referencing
+  type        NodeType
+  positionX   Int         @default(0)
+  positionY   Int         @default(0)
+
+  // Raw JSON configurations & schemas stored as string (JSON) for flexibility
+  configJson        Json?
+  inputSchemaJson   Json?
+  outputSchemaJson  Json?
+
+  // Node may require multiple credentials (e.g., API + secondary service)
+  credentialLinks   NodeCredential[]
+
+  workflow    Workflow   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([workflowId, name])
+  @@index([workflowId])
+  @@index([type])
+}
+
+// Join model linking Nodes to Credentials with usage metadata
+model NodeCredential {
+  id            String     @id @default(uuid())
+  nodeId        String
+  credentialId  String
+  // usageType allows differentiating roles, e.g. "primary", "secondary", "auth", etc.
+  usageType     String?    @default("primary")
+
+  node       Node       @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  credential Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime   @default(now())
+
+  @@unique([nodeId, credentialId, usageType])
+  @@index([credentialId])
+}
+
+model Credential {
+  id            String           @id @default(uuid())
+  name          String
+  scope         CredentialScope
+  userId        String?          // present when scope == USER
+  // projectId reserved (not yet implemented); left nullable for future migration
+  projectId     String?          // when scope == PROJECT (future)
+
+  // Encrypted secret storage (AES-256-GCM)
+  cipherText    Bytes            // encrypted value
+  iv            Bytes            // initialization vector
+  authTag       Bytes            // GCM authentication tag
+  keyVersion    Int              @default(1) // supports key rotation tracking
+
+  // Optional structured metadata (e.g., expiration, provider info)
+  metaJson      Json?
+
+  // Reverse relation
+  nodeLinks     NodeCredential[]
+  user          User?            @relation(fields: [userId], references: [id])
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  lastRotatedAt DateTime?        @default(now())
+
+  @@unique([name, scope, userId, projectId])
+  @@index([scope])
+  @@index([userId])
+}
+
+model Execution {
+  id              String          @id @default(uuid())
+  workflowId      String
+  status          ExecutionStatus @default(QUEUED)
+  triggeredByUserId String?
+
+  // Snapshot of workflow definition at time of execution (for audit immutability)
+  workflowSnapshot Json?
+  // Node-by-node results structure (flexible JSON)
+  resultJson       Json?
+  errorJson        Json?
+
+  startedAt        DateTime       @default(now())
+  finishedAt       DateTime?
+
+  workflow         Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  triggeredByUser  User?          @relation("TriggeredExecutions", fields: [triggeredByUserId], references: [id])
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([triggeredByUserId])
+  @@index([startedAt])
+}
+
+// =============================
+// Composite Types (Future Expansion Placeholder)
+// =============================
+// Example of potential future definition for project scoping:
+// model Project {
+//   id          String       @id @default(uuid())
+//   name        String       @unique
+//   workflows   Workflow[]
+//   credentials Credential[]
+//   createdAt   DateTime     @default(now())
+//   updatedAt   DateTime     @updatedAt
+// }
