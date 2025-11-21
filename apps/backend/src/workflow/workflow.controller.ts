@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Req } from '@nestjs/common';
 import { WorkflowService } from './workflow.service';
 import { CreateWorkflowDto, UpdateWorkflowDto } from './workflow.dto';
 import { ExecutionService } from '../execution/execution.service';
@@ -13,8 +13,9 @@ export class WorkflowController {
   ) {}
 
   @Post()
-  async create(@Body() createWorkflowDto: CreateWorkflowDto) {
-    return this.workflowService.create(createWorkflowDto);
+  async create(@Body() createWorkflowDto: CreateWorkflowDto, @Req() req: any) {
+    const userId = req.user.userId;
+    return this.workflowService.create(createWorkflowDto, userId);
   }
 
   @Get()

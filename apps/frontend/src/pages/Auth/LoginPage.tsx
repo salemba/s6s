@@ -30,7 +30,7 @@ export const LoginPage: React.FC = () => {
     <div className="min-h-screen w-full bg-[#0d1117] flex items-center justify-center p-4">
       <div className="w-full max-w-[400px] bg-[#161b22] rounded-xl border border-[#30363d] p-8 shadow-xl">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">s6s</h1>
+          <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">S6S</h1>
           <p className="text-[#8b949e] text-sm font-medium">Self-Hosted Automation</p>
         </div>
 

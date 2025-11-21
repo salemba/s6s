@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Sidebar } from '../../components/Layout/Sidebar';
 import { apiClient } from '../../api/client';
 import { Plus, Search, ShieldCheck, Pencil, Trash2, Key, Database, Terminal } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Credential {
   id: string;
@@ -22,6 +23,7 @@ export const CredentialsManager: React.FC = () => {
   const [type, setType] = useState('API_KEY');
   const [value, setValue] = useState('');
   const [isQuantum, setIsQuantum] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCredentials();
@@ -38,19 +40,52 @@ export const CredentialsManager: React.FC = () => {
     }
   };
 
+  const resetForm = () => {
+    setName('');
+    setValue('');
+    setIsQuantum(false);
+    setEditingId(null);
+    setType('API_KEY');
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post('/credentials', { name, type, value, isQuantum });
-      alert('Credential saved successfully!');
+      if (editingId) {
+        await apiClient.put(`/credentials/${editingId}`, { name, type, value, isQuantum });
+        toast.success('Credential updated successfully!');
+      } else {
+        await apiClient.post('/credentials', { name, type, value, isQuantum });
+        toast.success('Credential saved successfully!');
+      }
       setShowForm(false);
-      setName('');
-      setValue('');
-      setIsQuantum(false);
+      resetForm();
       fetchCredentials();
     } catch (error) {
       console.error('Error saving credential', error);
-      alert('Failed to save credential.');
+      toast.error('Failed to save credential.');
+    }
+  };
+
+  const handleEdit = (cred: Credential) => {
+    setEditingId(cred.id);
+    setName(cred.name);
+    setType(cred.type);
+    setIsQuantum(cred.isQuantum || false);
+    setValue(''); // Value is not retrieved for security
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this credential? This action cannot be undone.')) {
+      try {
+        await apiClient.delete(`/credentials/${id}`);
+        toast.success('Credential deleted successfully');
+        fetchCredentials();
+      } catch (error) {
+        console.error('Error deleting credential', error);
+        toast.error('Failed to delete credential.');
+      }
     }
   };
 
@@ -77,7 +112,10 @@ export const CredentialsManager: React.FC = () => {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-white tracking-tight">Credentials Vault</h1>
             <button
-              onClick={() => setShowForm(!showForm)}
+              onClick={() => {
+                resetForm();
+                setShowForm(!showForm);
+              }}
               className="bg-[#1f6feb] hover:bg-[#388bfd] text-white px-4 py-2 rounded-md font-medium flex items-center gap-2 transition-colors shadow-sm"
             >
               <Plus size={18} />
@@ -114,7 +152,7 @@ export const CredentialsManager: React.FC = () => {
           {/* Create Form (Inline for now) */}
           {showForm && (
             <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-6 mb-6 animate-in fade-in slide-in-from-top-4">
-              <h2 className="text-lg font-bold text-white mb-4">Add New Secret</h2>
+              <h2 className="text-lg font-bold text-white mb-4">{editingId ? 'Edit Secret' : 'Add New Secret'}</h2>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -147,8 +185,8 @@ export const CredentialsManager: React.FC = () => {
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     className="w-full bg-[#0d1117] border border-[#30363d] text-white p-2.5 rounded-md font-mono h-24 focus:border-[#1f6feb] outline-none"
-                    placeholder="Paste your secret here..."
-                    required
+                    placeholder={editingId ? "Leave blank to keep existing secret..." : "Paste your secret here..."}
+                    required={!editingId}
                   />
                 </div>
 
@@ -179,7 +217,10 @@ export const CredentialsManager: React.FC = () => {
                 <div className="flex justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => setShowForm(false)}
+                    onClick={() => {
+                        setShowForm(false);
+                        resetForm();
+                    }}
                     className="px-4 py-2 text-[#c9d1d9] hover:text-white transition-colors"
                   >
                     Cancel
@@ -188,7 +229,7 @@ export const CredentialsManager: React.FC = () => {
                     type="submit"
                     className="bg-[#238636] hover:bg-[#2ea043] text-white px-4 py-2 rounded-md font-medium transition-colors"
                   >
-                    Save Encrypted
+                    {editingId ? 'Update Encrypted' : 'Save Encrypted'}
                   </button>
                 </div>
               </form>
@@ -241,10 +282,16 @@ export const CredentialsManager: React.FC = () => {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="p-2 text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#1f6feb]/10 rounded-md transition-colors">
+                          <button 
+                            onClick={() => handleEdit(cred)}
+                            className="p-2 text-[#8b949e] hover:text-[#58a6ff] hover:bg-[#1f6feb]/10 rounded-md transition-colors"
+                          >
                             <Pencil size={16} />
                           </button>
-                          <button className="p-2 text-[#8b949e] hover:text-[#f85149] hover:bg-[#f85149]/10 rounded-md transition-colors">
+                          <button 
+                            onClick={() => handleDelete(cred.id)}
+                            className="p-2 text-[#8b949e] hover:text-[#f85149] hover:bg-[#f85149]/10 rounded-md transition-colors"
+                          >
                             <Trash2 size={16} />
                           </button>
                         </div>

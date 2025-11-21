@@ -1,8 +1,8 @@
-# 🏛️ s6s Workflow Automation Platform: Architecture Specification
+# 🏛️ S6S Workflow Automation Platform: Architecture Specification
 
 **Role:** Principal Software Architect and Senior Full-Stack Engineer.
 
-**Project Name:** s6s (Enterprise Workflow Automation)
+**Project Name:** S6S (Enterprise Workflow Automation)
 
 **Goal:** Design the foundational architecture, schemas, and core interfaces for a low-code workflow automation platform with a heavy emphasis on security and enterprise features.
 

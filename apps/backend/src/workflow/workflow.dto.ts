@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/mapped-types';
 import { IWorkflowDefinition, INode } from '../../../../packages/shared/src/interfaces/s6s.interface';
 
 export class CreateWorkflowDto implements IWorkflowDefinition {
@@ -10,4 +11,7 @@ export class CreateWorkflowDto implements IWorkflowDefinition {
   isActive: boolean;
 }
 
-export class UpdateWorkflowDto implements Partial<CreateWorkflowDto> {}
+export class UpdateWorkflowDto extends PartialType(CreateWorkflowDto) {
+  nodes?: INode[];
+  edges?: any[];
+}

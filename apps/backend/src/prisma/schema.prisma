@@ -118,6 +118,7 @@ model Workflow {
 
   version     Int         @default(1)
   isActive    Boolean     @default(true)
+  edgesJson   Json?       // Stores the graph connections
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 

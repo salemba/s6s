@@ -20,11 +20,9 @@ export const Sidebar: React.FC = () => {
     <div className="w-64 h-screen bg-[#0d1117] border-r border-[#30363d] flex flex-col fixed left-0 top-0">
       <div className="p-6">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">S</span>
-          </div>
+          <img src="/s6s_icon.png" alt="S6S" className="w-8 h-8 rounded-lg" />
           <div>
-            <h1 className="text-white font-bold text-lg tracking-tight">s6s</h1>
+            <h1 className="text-white font-bold text-lg tracking-tight">S6S</h1>
             <p className="text-[#8b949e] text-xs">Workflow Automation</p>
           </div>
         </div>

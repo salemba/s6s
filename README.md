@@ -1,15 +1,15 @@
 <img src="./s6s_banner.png" alt="s6s Workflow Automation" width="100%" />
 
-# s6s Workflow Automation Platform
+# S6S Workflow Automation Platform
 
-s6s is a self-hosted, secure, and open-source enterprise workflow automation platform designed for high-compliance environments. It enables organizations to orchestrate complex business logic through a visual interface while maintaining strict governance over data and credentials.
+S6S is a self-hosted, secure, and open-source enterprise workflow automation platform designed for high-compliance environments. It enables organizations to orchestrate complex business logic through a visual interface while maintaining strict governance over data and credentials.
 
 ## Architecture Overview
 
 The platform is engineered as a high-performance monorepo using Turborepo, ensuring modularity and type safety across the full stack.
 
-*   **Execution Model**: s6s utilizes an asynchronous Producer/Consumer architecture. The frontend triggers execution events which are queued in Redis via BullMQ. Dedicated worker services consume these jobs, ensuring the main application remains responsive even under heavy load.
-*   **Security-First Design**: Unlike standard automation tools, s6s prioritizes security. The architecture includes a dedicated Vault service that enforces a hybrid cryptographic scheme combining AES-256-GCM and Post-Quantum Cryptography (ML-KEM-1024) for all stored credentials at rest. Secrets are decrypted only in-memory within the isolated execution context and are never exposed to the frontend client.
+*   **Execution Model**: S6S utilizes an asynchronous Producer/Consumer architecture. The frontend triggers execution events which are queued in Redis via BullMQ. Dedicated worker services consume these jobs, ensuring the main application remains responsive even under heavy load.
+*   **Security-First Design**: Unlike standard automation tools, S6S prioritizes security. The architecture includes a dedicated Vault service that enforces a hybrid cryptographic scheme combining AES-256-GCM and Post-Quantum Cryptography (ML-KEM-1024) for all stored credentials at rest. Secrets are decrypted only in-memory within the isolated execution context and are never exposed to the frontend client.
 *   **Sandboxed Execution**: Custom code nodes run within isolated virtual machine contexts to prevent remote code execution vulnerabilities and ensure tenant isolation.
 
 ## Key Features

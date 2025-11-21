@@ -1,5 +1,5 @@
-import React, { useCallback, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import ReactFlow, {
   ReactFlowProvider,
   Controls,
@@ -15,6 +15,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Play, Save, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 // Import shared interface
 import { INode, IWorkflowDefinition } from '../../../../../packages/shared/src/interfaces/s6s.interface';
@@ -22,6 +23,8 @@ import BaseNode from '../NodeTemplates/BaseNode';
 import { NodeConfigPanel } from '../NodeConfigPanel/NodeConfigPanel';
 import { NodePalette } from '../NodePalette/NodePalette';
 import { sampleLogicFlow } from '../../fixtures/sampleFlow';
+
+import { apiClient } from '../../api/client';
 
 const nodeTypes = {
   custom: BaseNode,
@@ -45,6 +48,7 @@ export interface WorkflowCanvasProps {
 
 export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: propNodeResults, workflowId: propWorkflowId }) => {
   const navigate = useNavigate();
+  const { id: paramId } = useParams<{ id: string }>();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -52,33 +56,24 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
 
   // 1. Add State for workflow metadata
   const [workflowName, setWorkflowName] = useState('My New Workflow');
-  const [workflowId, setWorkflowId] = useState<string | undefined>(propWorkflowId);
+  const [workflowId, setWorkflowId] = useState<string | undefined>(propWorkflowId || paramId);
   const [executionResults, setExecutionResults] = useState<any[]>([]);
   const [selectedNode, setSelectedNode] = useState<INode | null>(null);
 
   // Load Workflow Data on Mount
-  React.useEffect(() => {
+  useEffect(() => {
     const loadWorkflow = async () => {
-      if (!propWorkflowId) return;
+      if (!workflowId) return;
 
-      let workflowData: IWorkflowDefinition | null = null;
+      try {
+        console.log(`Loading workflow ${workflowId}...`);
+        const response = await apiClient.get(`/workflows/${workflowId}`);
+        const workflow: IWorkflowDefinition = response.data;
+        
+        setWorkflowName(workflow.name);
 
-      if (propWorkflowId === 'sample') {
-        console.log('Loading sample workflow...');
-        workflowData = sampleLogicFlow;
-      } else {
-        // TODO: Fetch from API
-        // const res = await fetch(`/api/workflows/${propWorkflowId}`);
-        // workflowData = await res.json();
-        console.log(`Fetching workflow ${propWorkflowId} from API...`);
-      }
-
-      if (workflowData) {
-        setWorkflowName(workflowData.name);
-        setWorkflowId(workflowData.id);
-
-        // Map Nodes
-        const mappedNodes = workflowData.nodes.map((node) => ({
+        // Map s6s INode back to React Flow Node
+        const mappedNodes: Node[] = workflow.nodes.map((node) => ({
           id: node.id,
           type: 'custom', // Always use 'custom' for our BaseNode template
           position: node.position || { x: 0, y: 0 },
@@ -95,29 +90,30 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
           },
         }));
 
-        // Map Edges
-        const mappedEdges = (workflowData.edges || []).map((edge) => ({
+        const mappedEdges: Edge[] = (workflow.edges || []).map((edge) => ({
           id: edge.id,
           source: edge.source,
           target: edge.target,
           label: edge.label,
-          type: 'default', // or 'smoothstep'
+          type: 'default',
         }));
 
         setNodes(mappedNodes);
         setEdges(mappedEdges);
 
-        // Fit View after a short delay to allow rendering
         setTimeout(() => {
           if (reactFlowInstance) {
             reactFlowInstance.fitView();
           }
         }, 100);
+
+      } catch (error) {
+        console.error('Error loading workflow:', error);
       }
     };
 
     loadWorkflow();
-  }, [propWorkflowId, setNodes, setEdges, reactFlowInstance]);
+  }, [workflowId, setNodes, setEdges, reactFlowInstance]);
 
   // Handler for node selection
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -273,7 +269,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
     }));
 
     const payload: IWorkflowDefinition = {
-      id: workflowId || crypto.randomUUID(),
+      id: workflowId || '', // ID is ignored on create, used on update
       name: workflowName,
       projectId: 'default-project', // Placeholder
       nodes: mappedNodes,
@@ -284,59 +280,57 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
     // 4. API Call
     try {
       console.log('Sending payload to backend:', payload);
-      // const response = await fetch('/api/workflows', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(payload),
-      // });
-      // const data = await response.json();
-      // setWorkflowId(data.id);
-      alert(`Workflow "${workflowName}" saved successfully! (Simulated)`);
       
-      // Simulate setting an ID if one doesn't exist
-      if (!workflowId) setWorkflowId('simulated-workflow-id');
+      if (workflowId) {
+        // Update existing
+        await apiClient.patch(`/workflows/${workflowId}`, payload);
+        toast.success(`Workflow "${workflowName}" updated successfully!`);
+      } else {
+        // Create new
+        const response = await apiClient.post('/workflows', payload);
+        const newWorkflow = response.data;
+        setWorkflowId(newWorkflow.id);
+        toast.success(`Workflow "${workflowName}" created successfully!`);
+        // Update URL without reloading
+        navigate(`/workflow/${newWorkflow.id}`, { replace: true });
+      }
 
     } catch (error) {
       console.error('Error saving workflow:', error);
-      alert('Failed to save workflow.');
+      toast.error('Failed to save workflow.');
     }
   };
 
   // 5. Run Workflow Function
   const runWorkflow = async () => {
     if (!workflowId) {
-      alert('Please save the workflow before running.');
+      toast.error('Please save the workflow before running.');
       return;
     }
 
     try {
       console.log(`Running workflow ${workflowId}...`);
       // 1. Trigger Run
-      // const response = await fetch(`/api/workflows/${workflowId}/run`, { method: 'POST' });
-      // const { executionId } = await response.json();
+      const response = await apiClient.post(`/workflows/${workflowId}/run`);
+      const { executionId } = response.data;
       
-      const executionId = 'exec-' + Date.now(); // Simulated ID
       console.log(`Execution started: ${executionId}`);
-      alert(`Execution started! ID: ${executionId}`);
+      toast.success(`Execution started! ID: ${executionId}`);
 
       // 2. Polling Loop
       const pollInterval = setInterval(async () => {
         try {
           console.log(`Polling execution ${executionId}...`);
-          // const statusRes = await fetch(`/api/workflows/execution/${executionId}`);
-          // const statusData = await statusRes.json();
+          const statusRes = await apiClient.get(`/executions/${executionId}`);
+          const statusData = statusRes.data;
           
-          // Simulated Response
-          const statusData = { 
-            status: 'SUCCESS', 
-            nodeResults: [
-              { nodeId: '1', status: 'SUCCESS', outputData: { message: 'Triggered' } }
-            ] 
-          };
-
           if (statusData.status === 'SUCCESS' || statusData.status === 'FAILED') {
             clearInterval(pollInterval);
-            alert(`Execution finished with status: ${statusData.status}`);
+            if (statusData.status === 'SUCCESS') {
+                toast.success(`Execution finished successfully!`);
+            } else {
+                toast.error(`Execution failed.`);
+            }
             console.log('Execution Results:', statusData);
             setExecutionResults(statusData.nodeResults); // Update state to trigger visualization
           }
@@ -348,7 +342,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
 
     } catch (error) {
       console.error('Error running workflow:', error);
-      alert('Failed to run workflow.');
+      toast.error('Failed to run workflow.');
     }
   };
 
@@ -357,6 +351,10 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-[#30363d] bg-[#161b22] px-4 shrink-0">
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 border-r border-[#30363d] pr-4 mr-2">
+             <img src="/s6s_icon.png" alt="S6S" className="w-6 h-6 rounded-md" />
+             <span className="text-white font-bold text-sm tracking-tight">S6S</span>
+          </div>
           <button 
             className="text-gray-400 hover:text-gray-200 cursor-pointer"
             onClick={() => navigate('/dashboard')}

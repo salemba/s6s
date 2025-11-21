@@ -1,0 +1,220 @@
+{
+  "id": "17b10497-146c-4e2e-ba62-d70794109781",
+  "name": "Newsletter Workflow",
+  "description": null,
+  "ownerId": "948e8b52-41d0-48ff-9a02-b56062d4956e",
+  "version": 1,
+  "isActive": true,
+  "edgesJson": [
+    {
+      "id": "reactflow__edge-1-ea21597b-679e-4283-b648-fc6be66faad0",
+      "type": "default",
+      "source": "1",
+      "target": "ea21597b-679e-4283-b648-fc6be66faad0"
+    },
+    {
+      "id": "reactflow__edge-ea21597b-679e-4283-b648-fc6be66faad0-fef12e0e-d73d-47b2-b240-d6e71d5b5ce8",
+      "type": "default",
+      "source": "ea21597b-679e-4283-b648-fc6be66faad0",
+      "target": "fef12e0e-d73d-47b2-b240-d6e71d5b5ce8"
+    },
+    {
+      "id": "reactflow__edge-1-35fc1813-7f2a-4c1c-a78c-ce2cc54dab41",
+      "type": "default",
+      "source": "1",
+      "target": "35fc1813-7f2a-4c1c-a78c-ce2cc54dab41"
+    },
+    {
+      "id": "reactflow__edge-ea21597b-679e-4283-b648-fc6be66faad0-64d1af97-d019-4649-a5e8-6e3c50946943",
+      "type": "default",
+      "source": "ea21597b-679e-4283-b648-fc6be66faad0",
+      "target": "64d1af97-d019-4649-a5e8-6e3c50946943"
+    },
+    {
+      "id": "reactflow__edge-64d1af97-d019-4649-a5e8-6e3c50946943-5d824dc4-4521-4799-aa2d-880f530c4d0f",
+      "type": "default",
+      "source": "64d1af97-d019-4649-a5e8-6e3c50946943",
+      "target": "5d824dc4-4521-4799-aa2d-880f530c4d0f"
+    },
+    {
+      "id": "reactflow__edge-fef12e0e-d73d-47b2-b240-d6e71d5b5ce8-5d824dc4-4521-4799-aa2d-880f530c4d0f",
+      "type": "default",
+      "source": "fef12e0e-d73d-47b2-b240-d6e71d5b5ce8",
+      "target": "5d824dc4-4521-4799-aa2d-880f530c4d0f"
+    },
+    {
+      "id": "reactflow__edge-5d824dc4-4521-4799-aa2d-880f530c4d0f-04c910e8-189c-449f-b80c-c1064aeff2df",
+      "type": "default",
+      "source": "5d824dc4-4521-4799-aa2d-880f530c4d0f",
+      "target": "04c910e8-189c-449f-b80c-c1064aeff2df"
+    },
+    {
+      "id": "reactflow__edge-ea7af3e3-b4c2-4856-b1a0-18e50c06f6b6-4198020d-8e2d-4fa6-8532-4757c4b48f7c",
+      "type": "default",
+      "source": "ea7af3e3-b4c2-4856-b1a0-18e50c06f6b6",
+      "target": "4198020d-8e2d-4fa6-8532-4757c4b48f7c"
+    },
+    {
+      "id": "reactflow__edge-ea7af3e3-b4c2-4856-b1a0-18e50c06f6b6-f45ce4c7-285b-4e8e-b851-2fc3f972cfc1",
+      "type": "default",
+      "source": "ea7af3e3-b4c2-4856-b1a0-18e50c06f6b6",
+      "target": "f45ce4c7-285b-4e8e-b851-2fc3f972cfc1"
+    },
+    {
+      "id": "reactflow__edge-f45ce4c7-285b-4e8e-b851-2fc3f972cfc1-54fd0c00-4c18-44c6-85ac-28b1c2fd0d38",
+      "type": "default",
+      "source": "f45ce4c7-285b-4e8e-b851-2fc3f972cfc1",
+      "target": "54fd0c00-4c18-44c6-85ac-28b1c2fd0d38"
+    },
+    {
+      "id": "reactflow__edge-4198020d-8e2d-4fa6-8532-4757c4b48f7c-54fd0c00-4c18-44c6-85ac-28b1c2fd0d38",
+      "type": "default",
+      "source": "4198020d-8e2d-4fa6-8532-4757c4b48f7c",
+      "target": "54fd0c00-4c18-44c6-85ac-28b1c2fd0d38"
+    },
+    {
+      "id": "reactflow__edge-54fd0c00-4c18-44c6-85ac-28b1c2fd0d38-34c061e8-92c7-4f55-afde-a3ca750ba885",
+      "type": "default",
+      "source": "54fd0c00-4c18-44c6-85ac-28b1c2fd0d38",
+      "target": "34c061e8-92c7-4f55-afde-a3ca750ba885"
+    },
+    {
+      "id": "reactflow__edge-aa8cd530-9ff4-4f68-915a-fd5308056d84-bcc31e5d-21c0-4058-9e3a-a4fb2bb765ab",
+      "type": "default",
+      "source": "aa8cd530-9ff4-4f68-915a-fd5308056d84",
+      "target": "bcc31e5d-21c0-4058-9e3a-a4fb2bb765ab"
+    },
+    {
+      "id": "reactflow__edge-aa8cd530-9ff4-4f68-915a-fd5308056d84-6e789813-b78e-4d54-bd7f-386d8b4115d2",
+      "type": "default",
+      "source": "aa8cd530-9ff4-4f68-915a-fd5308056d84",
+      "target": "6e789813-b78e-4d54-bd7f-386d8b4115d2"
+    },
+    {
+      "id": "reactflow__edge-bcc31e5d-21c0-4058-9e3a-a4fb2bb765ab-28308344-a1a3-4c05-96dd-dd2a3aa22bcb",
+      "type": "default",
+      "source": "bcc31e5d-21c0-4058-9e3a-a4fb2bb765ab",
+      "target": "28308344-a1a3-4c05-96dd-dd2a3aa22bcb"
+    },
+    {
+      "id": "reactflow__edge-4a1680cb-7d75-446f-ab59-e6a790ac1bc2-5e7f63c5-2c1d-47c2-8100-6a4583d2dd28",
+      "type": "default",
+      "source": "4a1680cb-7d75-446f-ab59-e6a790ac1bc2",
+      "target": "5e7f63c5-2c1d-47c2-8100-6a4583d2dd28"
+    },
+    {
+      "id": "reactflow__edge-4a1680cb-7d75-446f-ab59-e6a790ac1bc2-f992b9d6-994e-4002-8fba-9f7fc070d75b",
+      "type": "default",
+      "source": "4a1680cb-7d75-446f-ab59-e6a790ac1bc2",
+      "target": "f992b9d6-994e-4002-8fba-9f7fc070d75b"
+    },
+    {
+      "id": "reactflow__edge-690f33d4-e627-4546-9490-dd37af424664-9f885401-0f4f-41b1-9ae3-15fdbb07fa98",
+      "type": "default",
+      "source": "690f33d4-e627-4546-9490-dd37af424664",
+      "target": "9f885401-0f4f-41b1-9ae3-15fdbb07fa98"
+    },
+    {
+      "id": "reactflow__edge-812766b3-ff27-4953-bb74-38af5f3ed28b-5f54106a-d9d1-45f7-a197-e10f1c37cb7d",
+      "source": "812766b3-ff27-4953-bb74-38af5f3ed28b",
+      "target": "5f54106a-d9d1-45f7-a197-e10f1c37cb7d",
+      "sourceHandle": null,
+      "targetHandle": null
+    }
+  ],
+  "createdAt": "2025-11-21T14:30:09.197Z",
+  "updatedAt": "2025-11-21T15:42:58.608Z",
+  "nodes": [
+    {
+      "id": "4d828154-f6e7-4bff-ab25-62dff61fcb85",
+      "workflowId": "17b10497-146c-4e2e-ba62-d70794109781",
+      "name": "Newsletter Start Process",
+      "type": "TRIGGER_WEBHOOK",
+      "positionX": 0,
+      "positionY": 0,
+      "configJson": {},
+      "inputSchemaJson": null,
+      "outputSchemaJson": null,
+      "createdAt": "2025-11-21T15:42:58.608Z",
+      "updatedAt": "2025-11-21T15:42:58.608Z"
+    },
+    {
+      "id": "f66e7393-f01d-4a8b-a637-51571ac64b45",
+      "workflowId": "17b10497-146c-4e2e-ba62-d70794109781",
+      "name": "Check Sharepoint file deposit",
+      "type": "ACTION_HTTP",
+      "positionX": 361,
+      "positionY": 289,
+      "configJson": {},
+      "inputSchemaJson": null,
+      "outputSchemaJson": null,
+      "createdAt": "2025-11-21T15:42:58.608Z",
+      "updatedAt": "2025-11-21T15:42:58.608Z"
+    },
+    {
+      "id": "97be461c-f02a-4a3a-ae73-23c98f9b9a58",
+      "workflowId": "17b10497-146c-4e2e-ba62-d70794109781",
+      "name": "Check non sensitive files on Azure",
+      "type": "ACTION_HTTP",
+      "positionX": 358,
+      "positionY": 21,
+      "configJson": {},
+      "inputSchemaJson": null,
+      "outputSchemaJson": null,
+      "createdAt": "2025-11-21T15:42:58.608Z",
+      "updatedAt": "2025-11-21T15:42:58.608Z"
+    },
+    {
+      "id": "cbd64b2c-577f-495c-8e8c-eb51a634ea01",
+      "workflowId": "17b10497-146c-4e2e-ba62-d70794109781",
+      "name": "Build prompt",
+      "type": "ACTION_HTTP",
+      "positionX": 241,
+      "positionY": -116,
+      "configJson": {},
+      "inputSchemaJson": null,
+      "outputSchemaJson": null,
+      "createdAt": "2025-11-21T15:42:58.608Z",
+      "updatedAt": "2025-11-21T15:42:58.608Z"
+    },
+    {
+      "id": "aced959d-6188-454d-bbfe-6d3436ecb156",
+      "workflowId": "17b10497-146c-4e2e-ba62-d70794109781",
+      "name": "Send Email (SMTP)",
+      "type": "ACTION_HTTP",
+      "positionX": 19,
+      "positionY": 356,
+      "configJson": {},
+      "inputSchemaJson": null,
+      "outputSchemaJson": null,
+      "createdAt": "2025-11-21T15:42:58.608Z",
+      "updatedAt": "2025-11-21T15:42:58.608Z"
+    },
+    {
+      "id": "c7ef21ee-dd75-4538-a543-ece686b53c14",
+      "workflowId": "17b10497-146c-4e2e-ba62-d70794109781",
+      "name": "Azure AI Search Query",
+      "type": "ACTION_HTTP",
+      "positionX": -165,
+      "positionY": -124,
+      "configJson": {},
+      "inputSchemaJson": null,
+      "outputSchemaJson": null,
+      "createdAt": "2025-11-21T15:42:58.608Z",
+      "updatedAt": "2025-11-21T15:42:58.608Z"
+    },
+    {
+      "id": "1ad51fec-3452-46ee-9bec-7148b40ab721",
+      "workflowId": "17b10497-146c-4e2e-ba62-d70794109781",
+      "name": "RSS Feed Reader",
+      "type": "ACTION_HTTP",
+      "positionX": -310,
+      "positionY": 336,
+      "configJson": {},
+      "inputSchemaJson": null,
+      "outputSchemaJson": null,
+      "createdAt": "2025-11-21T15:42:58.608Z",
+      "updatedAt": "2025-11-21T15:42:58.608Z"
+    }
+  ]
+}
