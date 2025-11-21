@@ -1,6 +1,9 @@
 # Use Node 20
 FROM node:20-alpine AS builder
 
+# Install OpenSSL and libc6-compat for Prisma
+RUN apk add --no-cache openssl libc6-compat
+
 # Set working directory
 WORKDIR /app
 
@@ -21,7 +24,7 @@ COPY . .
 
 # Generate Prisma Client
 WORKDIR /app/apps/backend
-RUN npx prisma generate
+RUN npx prisma generate --schema=src/prisma/schema.prisma
 
 # Build the backend
 WORKDIR /app
@@ -29,6 +32,7 @@ RUN turbo run build --filter=backend
 
 # --- Production Stage ---
 FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 # Copy built artifacts and node_modules
