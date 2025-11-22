@@ -8,8 +8,10 @@ async function bootstrap() {
   // Dynamic CORS configuration
   const corsOrigin = process.env.CORS_ORIGIN;
   app.enableCors({
-    origin: corsOrigin ? corsOrigin.split(',') : 'http://localhost:5173',
+    origin: corsOrigin ? corsOrigin.split(',') : ['http://localhost:5173', 'https://main.deituxssukei0.amplifyapp.com'],
     credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
   
   await app.listen(3000);
