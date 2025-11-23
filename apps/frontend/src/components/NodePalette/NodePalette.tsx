@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Search, PlayCircle, GitMerge, Zap, Puzzle, ChevronLeft } from 'lucide-react';
+import { Search, PlayCircle, GitMerge, Zap, Puzzle, ChevronLeft, Code } from 'lucide-react';
 
 const nodeTypes = [
   { type: 'TRIGGER_WEBHOOK', label: 'Webhook Listener', category: 'Triggers', icon: PlayCircle },
   { type: 'SCHEDULE_TRIGGER', label: 'Schedule Trigger', category: 'Triggers', icon: PlayCircle },
   { type: 'LOGIC_IF', label: 'If / Else', category: 'Logic', icon: GitMerge },
-  { type: 'CODE_CUSTOM', label: 'Custom Code', category: 'Logic', icon: GitMerge },
+  { type: 'LOGIC_CODE', label: 'JavaScript Code', category: 'Logic', icon: Code },
+  { type: 'CODE_CUSTOM', label: 'Custom Code (Legacy)', category: 'Logic', icon: GitMerge },
   { type: 'ACTION_HTTP', label: 'HTTP Request', category: 'Actions', icon: Zap },
   { type: 'CLOUD_STORAGE', label: 'Cloud File Storage', category: 'Actions', icon: Zap },
   { type: 'RSS_FEED_READER', label: 'RSS Feed Reader', category: 'Actions', icon: Zap },
@@ -13,6 +14,9 @@ const nodeTypes = [
   { type: 'EMAIL_SENDER', label: 'Send Email (SMTP)', category: 'Actions', icon: Zap },
   { type: 'LLM_QUERY', label: 'AI LLM Query', category: 'Actions', icon: Zap },
   { type: 'ACTION_DB_QUERY', label: 'Database Query', category: 'Actions', icon: Zap },
+  { type: 'INTEGRATION_TEAMS', label: 'Microsoft Teams', category: 'Integrations', icon: Puzzle },
+  { type: 'INTEGRATION_EXCEL', label: 'Microsoft Excel', category: 'Integrations', icon: Puzzle },
+  { type: 'INTEGRATION_FILE_SYSTEM', label: 'File System', category: 'Integrations', icon: Puzzle },
 ];
 
 const categories = [

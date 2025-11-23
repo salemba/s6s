@@ -218,7 +218,11 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
         position,
         data: { 
           label: label, 
-          type: type.includes('TRIGGER') ? 'Trigger' : 'Action', // Simple mapping for BaseNode visualization
+          type: type.includes('TRIGGER') 
+            ? 'Trigger' 
+            : type.includes('LOGIC') || type.includes('CODE')
+              ? 'Logic'
+              : 'Action', // Simple mapping for BaseNode visualization
           nodeType: type, // Store specific type (e.g., ACTION_HTTP)
           name: label,
           config: {} // Initialize config
@@ -261,7 +265,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
     const mappedNodes: INode[] = flowObject.nodes.map((node) => ({
       id: node.id,
       name: node.data.name || node.id,
-      type: node.data.type || 'unknown', // This should map back to the specific NodeType enum (e.g. TRIGGER_WEBHOOK)
+      type: node.data.nodeType || 'unknown', // This should map back to the specific NodeType enum (e.g. TRIGGER_WEBHOOK)
       config: node.data.config || {},
       inputs: [], // TODO: Derive from edges where target == node.id
       outputs: [], // TODO: Derive from edges where source == node.id

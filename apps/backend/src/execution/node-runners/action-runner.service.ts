@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as nodemailer from 'nodemailer';
-import { INode, IExecutionResult } from '../../../../../packages/shared/src/interfaces/s6s.interface';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as XLSX from 'xlsx';
+import { INode, IExecutionResult, NodeType } from '../../../../../packages/shared/src/interfaces/s6s.interface';
 import { resolveDynamicParameters } from '../../../../../packages/shared/src/utils/dynamic-resolver';
 
 @Injectable()
@@ -27,6 +30,15 @@ export class ActionRunnerService {
         return this._executeRssReader(node.config?.url);
       case 'CLOUD_STORAGE':
         return this._executeCloudStorage(node.config, credentials);
+      case NodeType.INTEGRATION_TEAMS:
+        return this._executeTeams(node.config);
+      case NodeType.INTEGRATION_EXCEL:
+        return this._executeExcel(node.config);
+      case NodeType.INTEGRATION_FILE_SYSTEM:
+        return this._executeFileSystem(node.config);
+      case NodeType.TRIGGER_MANUAL:
+        // Manual trigger is just a pass-through, no action needed
+        return { status: 'success', message: 'Manual trigger executed' };
       case 'ACTION_HTTP':
       default:
         return this.executeHttpRequest(node, credentials);
@@ -393,5 +405,105 @@ export class ActionRunnerService {
         });
       }, 500);
     });
+  }
+
+  /**
+   * Helper to execute Microsoft Teams operations via Webhook.
+   */
+  private async _executeTeams(config: any): Promise<object> {
+    this.logger.log(`Executing Teams Operation`);
+    const { webhookUrl, message } = config || {};
+
+    if (!webhookUrl) {
+      throw new Error('Teams Node requires a webhookUrl.');
+    }
+
+    const payload = {
+      text: message || 'Notification from S6S Workflow',
+    };
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(webhookUrl, payload)
+      );
+      return { status: 'success', data: response.data };
+    } catch (error: any) {
+      this.logger.error(`Teams execution failed: ${error.message}`);
+      throw new Error(`Teams execution failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Helper to execute Excel operations.
+   */
+  private async _executeExcel(config: any): Promise<object> {
+    this.logger.log(`Executing Excel Operation: ${config?.operation}`);
+    const { operation, filePath, data, sheetName } = config || {};
+
+    if (!operation || !filePath) {
+      throw new Error('Excel Node requires operation and filePath.');
+    }
+
+    if (operation === 'READ') {
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`File not found: ${filePath}`);
+      }
+      const workbook = XLSX.readFile(filePath);
+      const sheet = workbook.Sheets[sheetName || workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+      return { status: 'success', data: jsonData };
+    }
+
+    if (operation === 'WRITE') {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(Array.isArray(data) ? data : [data]);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName || 'Sheet1');
+      XLSX.writeFile(wb, filePath);
+      return { status: 'success', message: `File written to ${filePath}` };
+    }
+
+    throw new Error(`Unsupported Excel operation: ${operation}`);
+  }
+
+  /**
+   * Helper to execute File System operations.
+   */
+  private async _executeFileSystem(config: any): Promise<object> {
+    this.logger.log(`Executing File System Operation: ${config?.operation}`);
+    const { operation, filePath, content, encoding } = config || {};
+
+    if (!operation || !filePath) {
+      throw new Error('File System Node requires operation and filePath.');
+    }
+
+    switch (operation) {
+      case 'READ':
+        if (!fs.existsSync(filePath)) {
+          throw new Error(`File not found: ${filePath}`);
+        }
+        const fileContent = fs.readFileSync(filePath, { encoding: encoding || 'utf-8' });
+        return { status: 'success', content: fileContent };
+      
+      case 'WRITE':
+        fs.writeFileSync(filePath, content || '', { encoding: encoding || 'utf-8' });
+        return { status: 'success', message: `File written to ${filePath}` };
+      
+      case 'DELETE':
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          return { status: 'success', message: `File deleted: ${filePath}` };
+        }
+        return { status: 'warning', message: `File not found: ${filePath}` };
+        
+      case 'LIST':
+        if (!fs.existsSync(filePath)) {
+           throw new Error(`Directory not found: ${filePath}`);
+        }
+        const files = fs.readdirSync(filePath);
+        return { status: 'success', files };
+
+      default:
+        throw new Error(`Unsupported File System operation: ${operation}`);
+    }
   }
 }

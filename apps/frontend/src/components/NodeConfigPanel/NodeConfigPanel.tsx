@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, Settings, Key, FileText, Trash2 } from 'lucide-react';
+import Editor from '@monaco-editor/react';
 import { INode } from '../../../../../packages/shared/src/interfaces/s6s.interface';
 
 interface NodeConfigPanelProps {
@@ -303,11 +304,11 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
               </div>
             )}
 
-            <div className="border-t border-[#30363d] my-2 pt-2">
+            <div className="border-t border-[#303d] my-2 pt-2">
               <label className="flex items-center gap-2 text-sm text-gray-300">
                 <input
                   type="checkbox"
-                  className="rounded border-[#30363d] bg-[#0d1117] text-blue-500 focus:ring-0"
+                  className="rounded border-[#303d] bg-[#0d1117] text-blue-500 focus:ring-0"
                   checked={config.alwaysOutputData || false}
                   onChange={(e) => handleConfigChange('alwaysOutputData', e.target.checked)}
                 />
@@ -319,7 +320,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
                <label className="flex items-center gap-2 text-sm text-gray-300">
                 <input
                   type="checkbox"
-                  className="rounded border-[#30363d] bg-[#0d1117] text-blue-500 focus:ring-0"
+                  className="rounded border-[#303d] bg-[#0d1117] text-blue-500 focus:ring-0"
                   checked={config.retryOnFail || false}
                   onChange={(e) => handleConfigChange('retryOnFail', e.target.checked)}
                 />
@@ -331,7 +332,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
               <label className="text-xs font-semibold text-gray-400">On Error (Action)</label>
               <input
                 type="text"
-                className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
                 value={config.onError || ''}
                 onChange={(e) => handleConfigChange('onError', e.target.value)}
                 placeholder="e.g. continue, stop, or specific node ID"
@@ -347,7 +348,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
               <label className="text-xs font-semibold text-gray-400">Path</label>
               <input
                 type="text"
-                className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
                 value={config.path || ''}
                 onChange={(e) => handleConfigChange('path', e.target.value)}
                 placeholder="/webhook/..."
@@ -356,7 +357,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold text-gray-400">Method</label>
               <select
-                className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
                 value={config.method || 'POST'}
                 onChange={(e) => handleConfigChange('method', e.target.value)}
               >
@@ -374,7 +375,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
               <label className="text-xs font-semibold text-gray-400">Credential ID</label>
               <input
                 type="text"
-                className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
                 value={config.credentialId || ''}
                 onChange={(e) => handleConfigChange('credentialId', e.target.value)}
                 placeholder="Select Credential (ID)"
@@ -383,7 +384,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold text-gray-400">SQL Query</label>
               <textarea
-                className="h-32 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none font-mono"
+                className="h-32 w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none font-mono"
                 value={config.query || ''}
                 onChange={(e) => handleConfigChange('query', e.target.value)}
                 placeholder="SELECT * FROM users WHERE id = 1;"
@@ -400,7 +401,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
               <label className="text-xs font-semibold text-gray-400">Value A</label>
               <input
                 type="text"
-                className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
                 value={config.valueA || ''}
                 onChange={(e) => handleConfigChange('valueA', e.target.value)}
                 placeholder="{{ $node['Step'].json.id }}"
@@ -409,7 +410,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold text-gray-400">Operator</label>
               <select
-                className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
                 value={config.operator || 'EQUALS'}
                 onChange={(e) => handleConfigChange('operator', e.target.value)}
               >
@@ -428,7 +429,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
               <label className="text-xs font-semibold text-gray-400">Value B</label>
               <input
                 type="text"
-                className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
                 value={config.valueB || ''}
                 onChange={(e) => handleConfigChange('valueB', e.target.value)}
                 placeholder="Value to compare"
@@ -437,12 +438,164 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
           </>
         );
 
+      case 'INTEGRATION_TEAMS':
+        return (
+          <>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-gray-400">Webhook URL</label>
+              <input
+                type="text"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                value={config.webhookUrl || ''}
+                onChange={(e) => handleConfigChange('webhookUrl', e.target.value)}
+                placeholder="https://outlook.office.com/webhook/..."
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-gray-400">Message</label>
+              <textarea
+                className="h-32 w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none font-mono"
+                value={config.message || ''}
+                onChange={(e) => handleConfigChange('message', e.target.value)}
+                placeholder="Message content..."
+              />
+            </div>
+          </>
+        );
+
+      case 'INTEGRATION_EXCEL':
+        return (
+          <>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-gray-400">Operation</label>
+              <select
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
+                value={config.operation || 'READ'}
+                onChange={(e) => handleConfigChange('operation', e.target.value)}
+              >
+                <option value="READ">Read Excel File</option>
+                <option value="WRITE">Write Excel File</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-gray-400">File Path</label>
+              <input
+                type="text"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                value={config.filePath || ''}
+                onChange={(e) => handleConfigChange('filePath', e.target.value)}
+                placeholder="/path/to/file.xlsx"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-gray-400">Sheet Name</label>
+              <input
+                type="text"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                value={config.sheetName || ''}
+                onChange={(e) => handleConfigChange('sheetName', e.target.value)}
+                placeholder="Sheet1"
+              />
+            </div>
+            {config.operation === 'WRITE' && (
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold text-gray-400">Data (JSON)</label>
+                <textarea
+                  className="h-32 w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none font-mono"
+                  value={config.data || ''}
+                  onChange={(e) => handleConfigChange('data', e.target.value)}
+                  placeholder='[{"col1": "val1", "col2": "val2"}]'
+                />
+              </div>
+            )}
+          </>
+        );
+
+      case 'INTEGRATION_FILE_SYSTEM':
+        return (
+          <>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-gray-400">Operation</label>
+              <select
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
+                value={config.operation || 'READ'}
+                onChange={(e) => handleConfigChange('operation', e.target.value)}
+              >
+                <option value="READ">Read File</option>
+                <option value="WRITE">Write File</option>
+                <option value="DELETE">Delete File</option>
+                <option value="LIST">List Directory</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-gray-400">File/Dir Path</label>
+              <input
+                type="text"
+                className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                value={config.filePath || ''}
+                onChange={(e) => handleConfigChange('filePath', e.target.value)}
+                placeholder="/path/to/file.txt"
+              />
+            </div>
+            {(config.operation === 'READ' || config.operation === 'WRITE') && (
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold text-gray-400">Encoding</label>
+                <input
+                  type="text"
+                  className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                  value={config.encoding || 'utf-8'}
+                  onChange={(e) => handleConfigChange('encoding', e.target.value)}
+                  placeholder="utf-8"
+                />
+              </div>
+            )}
+            {config.operation === 'WRITE' && (
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold text-gray-400">Content</label>
+                <textarea
+                  className="h-32 w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none font-mono"
+                  value={config.content || ''}
+                  onChange={(e) => handleConfigChange('content', e.target.value)}
+                  placeholder="File content..."
+                />
+              </div>
+            )}
+          </>
+        );
+
+      case 'LOGIC_CODE':
+        return (
+          <div className="flex flex-col gap-2 h-full">
+            <label className="text-xs font-semibold text-gray-400">JavaScript Code</label>
+            <div className="h-64 w-full border border-[#30363d] rounded-md overflow-hidden">
+              <Editor
+                height="100%"
+                defaultLanguage="javascript"
+                theme="vs-dark"
+                value={config.code || `// Access previous node data via 'input'
+// You can use 'axios' and lodash '_'
+// Return the data you want to pass to the next node
+return {
+  message: "Hello " + (input?.name || "World"),
+  timestamp: new Date()
+};`}
+                onChange={(value) => handleConfigChange('code', value)}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 12,
+                  scrollBeyondLastLine: false,
+                }}
+              />
+            </div>
+          </div>
+        );
+
       case 'CODE_CUSTOM':
         return (
           <div className="flex flex-col gap-2 h-full">
             <label className="text-xs font-semibold text-gray-400">JavaScript Code</label>
             <textarea
-              className="flex-1 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none font-mono"
+              className="flex-1 w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none font-mono"
               value={config.code || ''}
               onChange={(e) => handleConfigChange('code', e.target.value)}
               placeholder="// return { ... }"

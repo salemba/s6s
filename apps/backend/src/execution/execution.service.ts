@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-// npm install vm2
-import { NodeVM } from 'vm2';
+import * as vm from 'vm';
+import * as _ from 'lodash';
+import axios from 'axios';
 // In a real monorepo setup, this would be imported from '@s6s/shared'
-import { IExecutionResult, IWorkflowDefinition, INode, ExecutionStatus } from '../../../../packages/shared/src/interfaces/s6s.interface';
+import { IExecutionResult, IWorkflowDefinition, INode, ExecutionStatus, NodeType } from '../../../../packages/shared/src/interfaces/s6s.interface';
 import { resolveDynamicParameters } from '../../../../packages/shared/src/utils/dynamic-resolver';
 import { VaultService } from '../vault/vault.service';
 import { ActionRunnerService } from './node-runners/action-runner.service';
@@ -27,10 +28,15 @@ export class ExecutionService {
    * 
    * @param workflowId The ID of the workflow to run.
    */
-  async enqueueWorkflow(workflowId: string): Promise<void> {
+  async enqueueWorkflow(workflowId: string): Promise<any> {
     // 1. Retrieve the Workflow Definition from the database (Prisma).
-    //    const workflow = await this.prisma.workflow.findUnique({ where: { id: workflowId }, include: { nodes: true } });
+    const workflow = await this.prisma.workflow.findUnique({ 
+      where: { id: workflowId }, 
+      include: { nodes: true } 
+    });
     
+    if (!workflow) throw new Error('Workflow not found');
+
     // 2. Validate that the workflow is active.
     //    if (!workflow.isActive) throw new Error('Workflow is inactive');
 
@@ -68,6 +74,9 @@ export class ExecutionService {
     //    });
     
     this.logger.log(`Enqueued workflow: ${workflowId}`);
+    
+    // Direct Execution for Testing
+    return this.processExecutionJob({ definition: workflow as any });
   }
 
   /**
@@ -134,7 +143,10 @@ export class ExecutionService {
         // 4. Dynamic Resolution
         // Resolve configuration parameters using the current execution context
         const resolvedConfig: Record<string, any> = {};
-        for (const [key, value] of Object.entries(node.config || {})) {
+        // Map configJson to config for backward compatibility in logic
+        const nodeConfig = (node as any).configJson || (node as any).config || {};
+
+        for (const [key, value] of Object.entries(nodeConfig)) {
           if (typeof value === 'string') {
             resolvedConfig[key] = resolveDynamicParameters(value, executionContext);
           } else {
@@ -155,6 +167,7 @@ export class ExecutionService {
         // 5. Execute the Node Logic.
         switch (node.type) {
           case 'CODE_CUSTOM':
+          case NodeType.LOGIC_CODE:
             // Extract code from config
             const code = resolvedConfig.code || '';
             outputData = await this._executeCodeInSandbox(code, executionData);
@@ -258,36 +271,42 @@ export class ExecutionService {
    * @param data The context data (e.g. previous node outputs) to inject.
    * @returns The result object from the code execution.
    */
-  private async _executeCodeInSandbox(code: string, data: object): Promise<object> {
-    // 1. Create a new NodeVM instance.
-    //    const vm = new NodeVM({
-    //      console: 'inherit', // Allow console.log to stdout
-    //      sandbox: { $input: data }, // Inject data into the global scope as read-only
-    //      require: {
-    //        external: false, // BLOCK external modules
-    //        builtin: [], // BLOCK all built-in modules (fs, process, child_process, etc.)
-    //        root: './',
-    //      },
-    //      timeout: 1000, // Set a timeout (e.g., 1000ms) to prevent infinite loops.
-    //      eval: false, // Disable eval()
-    //      wasm: false, // Disable WebAssembly
-    //    });
+  private async _executeCodeInSandbox(code: string, data: any): Promise<object> {
+    // Prepare the sandbox context
+    const sandbox = {
+      input: data.inputs, // Pass previous node results
+      axios: axios,
+      _: _,
+      console: {
+        log: (...args: any[]) => this.logger.log(`[Code Node Log] ${args.join(' ')}`),
+        error: (...args: any[]) => this.logger.error(`[Code Node Error] ${args.join(' ')}`),
+        warn: (...args: any[]) => this.logger.warn(`[Code Node Warn] ${args.join(' ')}`),
+      },
+    };
 
-    // 2. Run the code.
-    //    // Wrap code in a function or module structure if expected.
-    //    // The user code should return a value or export a function.
-    //    // Example: "return $input.item + 1;"
-    //    const wrappedCode = `module.exports = (function() { ${code} })();`;
+    // Create the context
+    const context = vm.createContext(sandbox);
 
-    //    try {
-    //      const result = vm.run(wrappedCode);
-    //      return result;
-    //    } catch (err) {
-    //      throw new Error(`Sandbox Error: ${err.message}`);
-    //    }
+    // Wrap the user's code in an async IIFE to allow top-level await
+    // We don't use 'return' here because vm.runInNewContext returns the result of the last statement
+    const scriptCode = "(async () => { " + code + " })();";
+    
+    try {
+      this.logger.log('Executing sandboxed code...');
+      
+      // Execute with strict timeout
+      // vm.runInNewContext returns the result of the last statement, which is our Promise
+      const resultPromise = vm.runInNewContext(scriptCode, context, {
+        timeout: 3000, // 3000ms timeout
+        displayErrors: true,
+      });
 
-    this.logger.log('Executing sandboxed code...');
-    return {}; // Placeholder
+      const result = await resultPromise;
+      return result || {};
+    } catch (error: any) {
+      this.logger.error(`Sandbox Error: ${error.message}`);
+      throw new Error(`Sandbox Error: ${error.message}`);
+    }
   }
 
   /**
@@ -298,7 +317,9 @@ export class ExecutionService {
    * @returns True if the condition is met, False otherwise.
    */
   private _executeLogicNode(node: INode, context: IExecutionResult): boolean {
-    const { valueA, operator, valueB } = node.config || {};
+    // Map configJson to config for backward compatibility in logic
+    const nodeConfig = (node as any).configJson || (node as any).config || {};
+    const { valueA, operator, valueB } = nodeConfig;
 
     // Resolve dynamic parameters for both values
     const resolvedA = typeof valueA === 'string' ? resolveDynamicParameters(valueA, context) : valueA;

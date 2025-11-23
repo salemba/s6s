@@ -10,6 +10,7 @@
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "axios": "^1.4.0",
     "clsx": "^2.0.0",
     "lucide-react": "^0.263.1",

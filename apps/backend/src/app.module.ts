@@ -14,7 +14,7 @@ import { PrismaModule } from './prisma/prisma.module';
       isGlobal: true,
       validationSchema: Joi.object({
         DATABASE_URL: Joi.string().required(),
-        REDIS_HOST: Joi.string().required(),
+        REDIS_HOST: Joi.string().optional(),
         MASTER_KEY: Joi.string().required(),
         CORS_ORIGIN: Joi.string().optional(), // Optional for dev, but good to have in prod
         PORT: Joi.number().default(3000),
