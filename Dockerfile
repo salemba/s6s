@@ -45,5 +45,13 @@ WORKDIR /app/apps/backend
 # Expose the NestJS port
 EXPOSE 3000
 
-# Command to run the backend, using a path relative to the new WORKDIR
+COPY apps/backend/docker-entrypoint.sh .
+
+# Rendre le script exécutable
+RUN chmod +x docker-entrypoint.sh
+
+# Définir le point d'entrée
+ENTRYPOINT ["/bin/sh", "./docker-entrypoint.sh"]
+
+# Command
 CMD ["node", "dist/main"]
