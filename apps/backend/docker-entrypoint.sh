@@ -7,7 +7,7 @@ cd /app/apps/backend
 
 # 2. Exécuter les migrations de base de données
 echo "Running Prisma migrations..."
-npx prisma migrate deploy
+npx prisma migrate deploy --schema=src/prisma/schema.prisma
 
 # 3. Exécuter le seeding de la base de données
 echo "Running database seeding..."
