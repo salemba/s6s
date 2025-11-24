@@ -86,7 +86,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
                 ? 'Logic' 
                 : 'Action', // Visual category
             nodeType: node.type, // Specific type
-            config: node.config,
+            config: node.config || (node as any).configJson || {},
           },
         }));
 
@@ -171,6 +171,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
               data: {
                 ...node.data,
                 executionStatus: result.status, // 'SUCCESS' | 'FAILED'
+                startTime: result.startTime,
                 // We could also add output data here if we wanted to display it
               },
             };
@@ -255,29 +256,36 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ nodeResults: pro
 
   // 2. Add Save Function
   const saveWorkflowToBackend = async () => {
-    if (!reactFlowInstance) return;
+    // if (!reactFlowInstance) return; // We don't strictly need the instance if we use state
 
     // 3. Payload Preparation
-    const flowObject = reactFlowInstance.toObject();
+    const flowObject = reactFlowInstance ? reactFlowInstance.toObject() : { nodes: [], edges: [] };
+    
+    // Use the 'nodes' state directly as it is the source of truth for React
+    // reactFlowInstance.toObject() might be slightly out of sync or handle data differently
+    const nodesToSave = nodes; 
+    const edgesToSave = edges; // Use edges state as well
 
     // Map React Flow nodes to s6s INode structure
-    // Note: We need to map the visual state (position, data) to the logical schema.
-    const mappedNodes: INode[] = flowObject.nodes.map((node) => ({
-      id: node.id,
-      name: node.data.name || node.id,
-      type: node.data.nodeType || 'unknown', // This should map back to the specific NodeType enum (e.g. TRIGGER_WEBHOOK)
-      config: node.data.config || {},
-      inputs: [], // TODO: Derive from edges where target == node.id
-      outputs: [], // TODO: Derive from edges where source == node.id
-      position: node.position,
-    }));
+    const mappedNodes: INode[] = nodesToSave.map((node) => {
+      const data = node.data as any;
+      return {
+        id: node.id,
+        name: data.name || node.id,
+        type: data.nodeType || 'unknown', 
+        config: data.config || {},
+        inputs: [], 
+        outputs: [], 
+        position: node.position,
+      };
+    });
 
     const payload: IWorkflowDefinition = {
-      id: workflowId || '', // ID is ignored on create, used on update
+      id: workflowId || '', 
       name: workflowName,
-      projectId: 'default-project', // Placeholder
+      projectId: 'default-project', 
       nodes: mappedNodes,
-      edges: flowObject.edges,
+      edges: edgesToSave,
       isActive: true,
     };
 

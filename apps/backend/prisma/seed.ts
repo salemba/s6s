@@ -116,17 +116,39 @@ async function main() {
 
   // Seed Functional Test Workflow
   const workflowId = 'e1cfd618-8045-4447-89cf-5e34b5b352ae';
-  
-  try {
-    await prisma.workflow.delete({
-      where: { id: workflowId }
-    });
-  } catch (e) {
-    // Ignore
-  }
 
-  const testWorkflow = await prisma.workflow.create({
-    data: {
+  const testWorkflow = await prisma.workflow.upsert({
+    where: { id: workflowId },
+    update: {
+      name: "Functional Test Workflow",
+      description: "A workflow to test manual execution and code nodes.",
+      isActive: true,
+      ownerId: user.id,
+      nodes: {
+        deleteMany: {},
+        create: [
+          {
+            id: "node-1",
+            name: "Manual Trigger",
+            type: 'TRIGGER_MANUAL' as NodeType,
+            configJson: {},
+            positionX: 100,
+            positionY: 100,
+          },
+          {
+            id: "node-2",
+            name: "Code Execution",
+            type: 'LOGIC_CODE' as NodeType,
+            configJson: {
+              code: "// axios is injected into the sandbox, no need to require it\nconsole.log('Hello from VM');\nreturn { success: true, message: 'Hello from VM' };"
+            },
+            positionX: 300,
+            positionY: 100,
+          }
+        ]
+      }
+    },
+    create: {
       id: workflowId,
       name: "Functional Test Workflow",
       description: "A workflow to test manual execution and code nodes.",
@@ -137,7 +159,7 @@ async function main() {
           {
             id: "node-1",
             name: "Manual Trigger",
-            type: NodeType.TRIGGER_MANUAL,
+            type: 'TRIGGER_MANUAL' as NodeType,
             configJson: {},
             positionX: 100,
             positionY: 100,
@@ -145,9 +167,9 @@ async function main() {
           {
             id: "node-2",
             name: "Code Execution",
-            type: NodeType.LOGIC_CODE,
+            type: 'LOGIC_CODE' as NodeType,
             configJson: {
-              code: "const axios = require('axios'); console.log('Hello from VM'); return { success: true, message: 'Hello from VM' };"
+              code: "// axios is injected into the sandbox, no need to require it\nconsole.log('Hello from VM');\nreturn { success: true, message: 'Hello from VM' };"
             },
             positionX: 300,
             positionY: 100,
@@ -180,6 +202,205 @@ async function main() {
   // Let's check the schema first to be safe, but for now I will just create the nodes as requested.
   
   console.log("Seeded Functional Test Workflow:", testWorkflow.id);
+
+  // ============================================================
+  // 2. Seed "Full Integration Test Flow"
+  // ============================================================
+  const fullTestWorkflow = await prisma.workflow.upsert({
+    where: {
+      ownerId_name: {
+        ownerId: user.id,
+        name: "Full Integration Test Flow"
+      }
+    },
+    update: {
+      description: "Comprehensive end-to-end test of multiple node types.",
+      isActive: true,
+      edgesJson: [
+        { id: "e1", source: "n1", target: "n2" },
+        { id: "e2", source: "n2", target: "n3" },
+        { id: "e3", source: "n3", target: "n4", label: "True" }, // True branch
+        { id: "e4", source: "n3", target: "n5", label: "False" }, // False branch
+        { id: "e5", source: "n4", target: "n6" },
+        { id: "e6", source: "n5", target: "n6" }
+      ],
+      nodes: {
+        deleteMany: {},
+        create: [
+          {
+            id: "n1",
+            name: "Start Flow",
+            type: 'TRIGGER_MANUAL' as NodeType,
+            positionX: 100,
+            positionY: 300,
+            configJson: {}
+          },
+          {
+            id: "n2",
+            name: "RSS Feed Reader (Simulated)",
+            // Using LOGIC_CODE to simulate RSS_FEED_READER since it's missing from Prisma Enum
+            type: 'LOGIC_CODE' as NodeType, 
+            positionX: 300,
+            positionY: 300,
+            configJson: {
+              code: `
+                // Simulate fetching RSS feed
+                // In real scenario, we would use axios to fetch XML and parse it
+                console.log("Fetching RSS Feed...");
+                return {
+                  title: "NYT Europe",
+                  items: [
+                    { title: "Article 1", link: "http://..." },
+                    { title: "Article 2", link: "http://..." }
+                  ]
+                };
+              `
+            }
+          },
+          {
+            id: "n3",
+            name: "Check Items",
+            type: NodeType.LOGIC_IF,
+            positionX: 500,
+            positionY: 300,
+            configJson: {
+              valueA: "{{n2.items.length}}",
+              operator: "GT",
+              valueB: "0"
+            }
+          },
+          {
+            id: "n4",
+            name: "Query Users",
+            type: NodeType.ACTION_DB_QUERY, // Using ACTION_DB_QUERY as POSTGRES_DB might be missing
+            positionX: 700,
+            positionY: 200,
+            configJson: {
+              query: "SELECT * FROM \"User\" LIMIT 1;" // Prisma uses "User" table (capitalized usually)
+            }
+          },
+          {
+            id: "n5",
+            name: "Fallback HTTP",
+            type: NodeType.ACTION_HTTP,
+            positionX: 700,
+            positionY: 400,
+            configJson: {
+              method: "GET",
+              url: "https://jsonplaceholder.typicode.com/todos/1" // Public test API
+            }
+          },
+          {
+            id: "n6",
+            name: "Log Result",
+            type: 'INTEGRATION_FILE_SYSTEM' as NodeType,
+            positionX: 900,
+            positionY: 300,
+            configJson: {
+              operation: "WRITE", // Using WRITE/APPEND
+              filePath: "./test-output.log",
+              content: "Flow executed. DB Result: {{n4}} | HTTP Result: {{n5}}"
+            }
+          }
+        ]
+      }
+    },
+    create: {
+      name: "Full Integration Test Flow",
+      description: "Comprehensive end-to-end test of multiple node types.",
+      ownerId: user.id,
+      isActive: true,
+      edgesJson: [
+        { id: "e1", source: "n1", target: "n2" },
+        { id: "e2", source: "n2", target: "n3" },
+        { id: "e3", source: "n3", target: "n4", label: "True" }, // True branch
+        { id: "e4", source: "n3", target: "n5", label: "False" }, // False branch
+        { id: "e5", source: "n4", target: "n6" },
+        { id: "e6", source: "n5", target: "n6" }
+      ],
+      nodes: {
+        create: [
+          {
+            id: "n1",
+            name: "Start Flow",
+            type: 'TRIGGER_MANUAL' as NodeType,
+            positionX: 100,
+            positionY: 300,
+            configJson: {}
+          },
+          {
+            id: "n2",
+            name: "RSS Feed Reader (Simulated)",
+            // Using LOGIC_CODE to simulate RSS_FEED_READER since it's missing from Prisma Enum
+            type: 'LOGIC_CODE' as NodeType, 
+            positionX: 300,
+            positionY: 300,
+            configJson: {
+              code: `
+                // Simulate fetching RSS feed
+                // In real scenario, we would use axios to fetch XML and parse it
+                console.log("Fetching RSS Feed...");
+                return {
+                  title: "NYT Europe",
+                  items: [
+                    { title: "Article 1", link: "http://..." },
+                    { title: "Article 2", link: "http://..." }
+                  ]
+                };
+              `
+            }
+          },
+          {
+            id: "n3",
+            name: "Check Items",
+            type: NodeType.LOGIC_IF,
+            positionX: 500,
+            positionY: 300,
+            configJson: {
+              valueA: "{{n2.items.length}}",
+              operator: "GT",
+              valueB: "0"
+            }
+          },
+          {
+            id: "n4",
+            name: "Query Users",
+            type: NodeType.ACTION_DB_QUERY, // Using ACTION_DB_QUERY as POSTGRES_DB might be missing
+            positionX: 700,
+            positionY: 200,
+            configJson: {
+              query: "SELECT * FROM \"User\" LIMIT 1;" // Prisma uses "User" table (capitalized usually)
+            }
+          },
+          {
+            id: "n5",
+            name: "Fallback HTTP",
+            type: NodeType.ACTION_HTTP,
+            positionX: 700,
+            positionY: 400,
+            configJson: {
+              method: "GET",
+              url: "https://jsonplaceholder.typicode.com/todos/1" // Public test API
+            }
+          },
+          {
+            id: "n6",
+            name: "Log Result",
+            type: 'INTEGRATION_FILE_SYSTEM' as NodeType,
+            positionX: 900,
+            positionY: 300,
+            configJson: {
+              operation: "WRITE", // Using WRITE/APPEND
+              filePath: "./test-output.log",
+              content: "Flow executed. DB Result: {{n4}} | HTTP Result: {{n5}}"
+            }
+          }
+        ]
+      }
+    }
+  });
+
+  console.log("Seeded Full Integration Test Workflow:", fullTestWorkflow.id);
 }
 
 main()

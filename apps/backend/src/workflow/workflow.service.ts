@@ -24,6 +24,7 @@ export class WorkflowService {
             edges: (edges as any[]) || [],
             nodes: wf.nodes.map(node => ({
                 ...node,
+                config: node.configJson,
                 position: { x: node.positionX, y: node.positionY }
             }))
         };
@@ -49,6 +50,7 @@ export class WorkflowService {
         edges: (edges as any[]) || [],
         nodes: workflow.nodes.map(node => ({
             ...node,
+            config: node.configJson,
             position: { x: node.positionX, y: node.positionY }
         }))
     };
@@ -101,52 +103,51 @@ export class WorkflowService {
   async update(id: string, data: UpdateWorkflowDto) {
     const { nodes, edges, projectId, ...workflowData } = data;
     
-    // For update, it's complex to sync nodes (create/update/delete).
-    // For now, we might just update metadata and edges, or do a full replace of nodes (delete all, create new).
-    // Full replace is safer for consistency but heavier.
-    
-    const updateData: any = {
-        ...workflowData,
-    };
-
-    if (edges !== undefined) {
-        updateData.edgesJson = (edges as any) ?? [];
-    }
-
-    if (nodes) {
-        // Delete existing nodes and recreate them
-        await this.prisma.node.deleteMany({ where: { workflowId: id } });
-        
-        const prismaNodes = nodes.map(node => {
-            let type: NodeType = NodeType.TRIGGER_WEBHOOK;
-            const upperType = node.type.toUpperCase();
-            if (upperType.includes('TRIGGER')) type = NodeType.TRIGGER_WEBHOOK;
-            else if (upperType.includes('ACTION')) type = NodeType.ACTION_HTTP;
-            else if (upperType.includes('LOGIC')) type = NodeType.LOGIC_IF;
-            
-            if (Object.values(NodeType).includes(node.type as NodeType)) {
-                type = node.type as NodeType;
-            }
-    
-            return {
-                id: node.id, // Preserve the ID from the frontend to maintain edge connections
-                name: node.name,
-                type: type,
-                positionX: Math.round(node.position.x),
-                positionY: Math.round(node.position.y),
-                configJson: node.config || {},
-            };
-        });
-
-        updateData.nodes = {
-            create: prismaNodes
+    // Use a transaction to ensure atomicity of node replacement
+    return this.prisma.$transaction(async (tx) => {
+        const updateData: any = {
+            ...workflowData,
         };
-    }
 
-    return this.prisma.workflow.update({ 
-        where: { id }, 
-        data: updateData,
-        include: { nodes: true }
+        if (edges !== undefined) {
+            updateData.edgesJson = (edges as any) ?? [];
+        }
+
+        if (nodes) {
+            // Delete existing nodes
+            await tx.node.deleteMany({ where: { workflowId: id } });
+            
+            const prismaNodes = nodes.map(node => {
+                let type: NodeType = NodeType.TRIGGER_WEBHOOK;
+                const upperType = node.type.toUpperCase();
+                if (upperType.includes('TRIGGER')) type = NodeType.TRIGGER_WEBHOOK;
+                else if (upperType.includes('ACTION')) type = NodeType.ACTION_HTTP;
+                else if (upperType.includes('LOGIC')) type = NodeType.LOGIC_IF;
+                
+                if (Object.values(NodeType).includes(node.type as NodeType)) {
+                    type = node.type as NodeType;
+                }
+        
+                return {
+                    id: node.id, // Preserve the ID
+                    name: node.name,
+                    type: type,
+                    positionX: Math.round(node.position.x),
+                    positionY: Math.round(node.position.y),
+                    configJson: node.config || {},
+                };
+            });
+
+            updateData.nodes = {
+                create: prismaNodes
+            };
+        }
+
+        return tx.workflow.update({ 
+            where: { id }, 
+            data: updateData,
+            include: { nodes: true }
+        });
     });
   }
 

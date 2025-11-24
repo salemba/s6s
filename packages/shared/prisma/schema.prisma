@@ -19,6 +19,7 @@ generator client {
 // Enums
 // =============================
 enum NodeType {
+  TRIGGER_MANUAL
   TRIGGER_WEBHOOK
   TRIGGER_CRON
   TRIGGER_POLLING
@@ -29,7 +30,10 @@ enum NodeType {
   LOGIC_IF
   LOGIC_MERGE
   LOGIC_WAIT
+  LOGIC_CODE
   CODE_CUSTOM
+  INTEGRATION_FILE_SYSTEM
+  INTEGRATION_OPENROUTER
 }
 
 enum ExecutionStatus {
@@ -59,6 +63,7 @@ enum RoleName {
 model User {
   id          String        @id @default(uuid())
   email       String        @unique
+  password    String
   displayName String?
   // Roles: many-to-many via RoleAssignment
   roleAssignments RoleAssignment[]
@@ -112,11 +117,16 @@ model Workflow {
   nodes       Node[]
   // Executions of this workflow
   executions  Execution[]
+  // Execution Logs (History)
+  executionLogs ExecutionLog[]
+  // Role assignments scoped to this workflow
+  roleAssignments RoleAssignment[]
   // Ownership relation
   owner       User        @relation("OwnerWorkflows", fields: [ownerId], references: [id])
 
   version     Int         @default(1)
   isActive    Boolean     @default(true)
+  edgesJson   Json?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -180,6 +190,10 @@ model Credential {
   authTag       Bytes            // GCM authentication tag
   keyVersion    Int              @default(1) // supports key rotation tracking
 
+  // Quantum-safe fields
+  isQuantum     Boolean          @default(false)
+  kyberCipher   Bytes?           // Kyber-1024 ciphertext
+
   // Optional structured metadata (e.g., expiration, provider info)
   metaJson      Json?
 
@@ -218,6 +232,20 @@ model Execution {
   @@index([status])
   @@index([triggeredByUserId])
   @@index([startedAt])
+}
+
+model ExecutionLog {
+  id           String     @id @default(uuid())
+  workflowId   String
+  status       String     // SUCCESS, FAILED, STUCK, RUNNING
+  startTime    DateTime   @default(now())
+  endTime      DateTime?
+  durationMs   Int?       // Calculated: endTime - startTime
+  summary      Json       // Store the main execution data (array of Node Logs)
+
+  // Link to the workflow model
+  workflow     Workflow   @relation(fields: [workflowId], references: [id])
+  @@index([workflowId])
 }
 
 // =============================

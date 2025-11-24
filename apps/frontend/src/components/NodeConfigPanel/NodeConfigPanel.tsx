@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { X, Settings, Key, FileText, Trash2 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import { INode } from '../../../../../packages/shared/src/interfaces/s6s.interface';
+import { CredentialModal } from './CredentialModal';
+import { OpenRouterConfig } from './OpenRouterConfig';
 
 interface NodeConfigPanelProps {
   selectedNode: INode | null;
@@ -15,12 +17,19 @@ type TabType = 'configuration' | 'credentials' | 'notes';
 export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, onUpdateNode, onDelete, onClose }) => {
   const [config, setConfig] = useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = useState<TabType>('configuration');
+  const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
+  const prevNodeIdRef = useRef<string | undefined>(undefined);
 
   // Sync local state when selected node changes
   useEffect(() => {
     if (selectedNode) {
       setConfig(selectedNode.config || {});
-      setActiveTab('configuration');
+      
+      // Only reset tab if the node ID has changed
+      if (selectedNode.id !== prevNodeIdRef.current) {
+        setActiveTab('configuration');
+        prevNodeIdRef.current = selectedNode.id;
+      }
     }
   }, [selectedNode]);
 
@@ -32,6 +41,11 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
     const newConfig = { ...config, [key]: value };
     setConfig(newConfig);
     onUpdateNode(selectedNode.id, newConfig);
+  };
+
+  const handleCredentialSelect = (credentialId: string) => {
+    handleConfigChange('credentialId', credentialId);
+    setIsCredentialModalOpen(false);
   };
 
   // Render specific fields based on node type
@@ -133,6 +147,14 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
               />
             </div>
           </>
+        );
+
+      case 'INTEGRATION_OPENROUTER':
+        return (
+          <OpenRouterConfig
+            config={config}
+            onChange={handleConfigChange}
+          />
         );
 
       case 'RSS_FEED_READER':
@@ -271,7 +293,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
                 <label className="text-xs font-semibold text-gray-400">Cron Expression</label>
                 <input
                   type="text"
-                  className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none font-mono"
+                  className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none font-mono"
                   value={config.cronExpression || '* * * * *'}
                   onChange={(e) => handleConfigChange('cronExpression', e.target.value)}
                   placeholder="* * * * *"
@@ -284,7 +306,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
                   <input
                     type="number"
                     min="1"
-                    className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none"
                     value={config.intervalValue || 15}
                     onChange={(e) => handleConfigChange('intervalValue', parseInt(e.target.value))}
                   />
@@ -292,7 +314,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ selectedNode, 
                 <div className="flex flex-col gap-2 flex-1">
                   <label className="text-xs font-semibold text-gray-400">Unit</label>
                   <select
-                    className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-md border border-[#303d] bg-[#0d1117] px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none"
                     value={config.intervalUnit || 'minutes'}
                     onChange={(e) => handleConfigChange('intervalUnit', e.target.value)}
                   >
@@ -695,13 +717,40 @@ return {
             <div className="mb-3 rounded-full bg-[#21262d] p-3 text-gray-500">
               <Key size={24} />
             </div>
-            <h4 className="text-sm font-medium text-gray-300">No Credentials Required</h4>
-            <p className="mt-1 text-xs text-gray-500">
-              This node does not require any authentication credentials.
-            </p>
-            <button className="mt-4 rounded-md bg-[#21262d] px-4 py-2 text-xs font-medium text-blue-400 hover:bg-[#30363d] transition-colors">
-              + Add Credential
-            </button>
+            
+            {config.credentialId ? (
+               <>
+                <h4 className="text-sm font-medium text-gray-300">Credential Linked</h4>
+                <p className="mt-1 text-xs text-gray-500">
+                  ID: {config.credentialId}
+                </p>
+                <button 
+                  onClick={() => setIsCredentialModalOpen(true)}
+                  className="mt-4 rounded-md bg-[#21262d] px-4 py-2 text-xs font-medium text-blue-400 hover:bg-[#30363d] transition-colors"
+                >
+                  Change Credential
+                </button>
+                <button 
+                  onClick={() => handleConfigChange('credentialId', undefined)}
+                  className="mt-2 text-xs text-red-400 hover:underline"
+                >
+                  Remove
+                </button>
+               </>
+            ) : (
+              <>
+                <h4 className="text-sm font-medium text-gray-300">No Credentials Linked</h4>
+                <p className="mt-1 text-xs text-gray-500">
+                  This node is not currently using any credentials.
+                </p>
+                <button 
+                  onClick={() => setIsCredentialModalOpen(true)}
+                  className="mt-4 rounded-md bg-[#21262d] px-4 py-2 text-xs font-medium text-blue-400 hover:bg-[#30363d] transition-colors"
+                >
+                  + Add Credential
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -730,6 +779,13 @@ return {
           </button>
         </div>
       </div>
+
+      <CredentialModal 
+        isOpen={isCredentialModalOpen}
+        onClose={() => setIsCredentialModalOpen(false)}
+        onSelect={handleCredentialSelect}
+        currentCredentialId={config.credentialId}
+      />
     </div>
   );
 };

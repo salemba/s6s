@@ -17,6 +17,7 @@ const nodeTypes = [
   { type: 'INTEGRATION_TEAMS', label: 'Microsoft Teams', category: 'Integrations', icon: Puzzle },
   { type: 'INTEGRATION_EXCEL', label: 'Microsoft Excel', category: 'Integrations', icon: Puzzle },
   { type: 'INTEGRATION_FILE_SYSTEM', label: 'File System', category: 'Integrations', icon: Puzzle },
+  { type: 'INTEGRATION_OPENROUTER', label: 'OpenRouter Query', category: 'Integrations', icon: Zap },
 ];
 
 const categories = [

@@ -45,13 +45,7 @@ export class WorkflowController {
    */
   @Post(':id/run')
   async runWorkflow(@Param('id') id: string) {
-    // In a real implementation, enqueueWorkflow would return the job ID or execution ID.
-    // For now, we'll generate one here or assume the service handles it.
-    // Since enqueueWorkflow is void, we simulate the ID.
-    await this.executionService.enqueueWorkflow(id);
-    
-    // TODO: Retrieve the actual execution ID from the queue job
-    const executionId = 'exec-' + Date.now(); 
-    return { executionId };
+    const result = await this.executionService.enqueueWorkflow(id);
+    return { executionId: result.executionId };
   }
 }

@@ -73,10 +73,51 @@ export class ExecutionService {
     //      definition: workflow 
     //    });
     
-    this.logger.log(`Enqueued workflow: ${workflowId}`);
+    // Create Execution Log immediately
+    const logEntry = await this.prisma.executionLog.create({
+      data: {
+        workflowId: workflow.id,
+        status: 'QUEUED',
+        startTime: new Date(),
+        summary: []
+      }
+    });
+
+    this.logger.log(`Enqueued workflow: ${workflowId} with execution ID: ${logEntry.id}`);
+
+    // Trigger execution asynchronously (fire and forget)
+    this.processExecutionJob({ 
+        definition: workflow as any,
+        executionLogId: logEntry.id
+    }).catch(err => {
+        this.logger.error(`Execution failed asynchronously: ${err.message}`);
+    });
     
-    // Direct Execution for Testing
-    return this.processExecutionJob({ definition: workflow as any });
+    return { executionId: logEntry.id };
+  }
+
+  /**
+   * Manually triggers a workflow execution directly, bypassing the queue.
+   * Useful for testing and debugging.
+   * 
+   * @param workflowId The ID of the workflow to run.
+   */
+  async runDirectly(workflowId: string): Promise<IExecutionResult> {
+    // 1. Fetch the full workflow definition from the database
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id: workflowId },
+      include: { nodes: true }
+    });
+
+    if (!workflow) {
+      throw new Error(`Workflow with ID ${workflowId} not found.`);
+    }
+
+    // 2. Call the existing processor logic directly
+    // We cast to any because the internal definition type might slightly differ from Prisma's return type
+    // regarding optional fields, but they are compatible for our usage.
+    const executionResult = await this.processExecutionJob({ definition: workflow as any });
+    return executionResult;
   }
 
   /**
@@ -94,13 +135,38 @@ export class ExecutionService {
    * @param jobData The payload containing the workflow definition.
    * @returns The result of the execution.
    */
-  async processExecutionJob(jobData: { definition: IWorkflowDefinition }): Promise<IExecutionResult> {
-    const { definition } = jobData;
-    const executionId = 'exec-' + Date.now();
+  async processExecutionJob(jobData: { definition: IWorkflowDefinition, executionLogId?: string }): Promise<IExecutionResult> {
+    const { definition, executionLogId } = jobData;
+    const executionId = executionLogId || 'exec-' + Date.now();
     const startTime = new Date();
     const nodeResults: any[] = [];
+    const nodeLogs: any[] = []; // Array to store detailed node logs
 
     this.logger.log(`Starting execution ${executionId} for workflow ${definition.name}`, { workflowId: definition.id });
+
+    // 0. Create Initial Execution Log in DB if not provided
+    let currentExecutionLogId = executionLogId;
+    if (!currentExecutionLogId) {
+      try {
+        const logEntry = await this.prisma.executionLog.create({
+          data: {
+            workflowId: definition.id,
+            status: 'RUNNING',
+            startTime: startTime,
+            summary: [] // Initial empty summary
+          }
+        });
+        currentExecutionLogId = logEntry.id;
+      } catch (err) {
+        this.logger.error(`Failed to create execution log: ${err.message}`);
+      }
+    } else {
+        // Update status to RUNNING if it was QUEUED
+        await this.prisma.executionLog.update({
+            where: { id: currentExecutionLogId },
+            data: { status: 'RUNNING', startTime: startTime }
+        });
+    }
 
     // 1. Topologically Sort the Nodes (DAG).
     // TODO: Implement actual topological sort using definition.edges.
@@ -121,6 +187,15 @@ export class ExecutionService {
 
     // 2. Iterate and Execute Nodes Sequentially.
     for (const node of sortedNodes) {
+      const nodeStartTime = new Date();
+      let nodeStatus = 'SUCCESS';
+      let nodeOutput: any = {};
+      let nodeError: string | null = null;
+      
+      // Capture input (results of previous nodes)
+      // In a real graph, this would be filtered to only upstream nodes
+      const nodeInput = _.cloneDeep(executionContext.nodeResults); 
+
       try {
         this.logger.log(`Executing node: ${node.name} (${node.type})`, { nodeId: node.id, executionId });
         
@@ -162,15 +237,13 @@ export class ExecutionService {
           inputs: executionContext.nodeResults // Pass previous results
         };
 
-        let outputData: any = {};
-
         // 5. Execute the Node Logic.
         switch (node.type) {
           case 'CODE_CUSTOM':
           case NodeType.LOGIC_CODE:
             // Extract code from config
             const code = resolvedConfig.code || '';
-            outputData = await this._executeCodeInSandbox(code, executionData);
+            nodeOutput = await this._executeCodeInSandbox(code, executionData);
             break;
           
           case 'ACTION_HTTP':
@@ -179,12 +252,12 @@ export class ExecutionService {
           case 'LLM_QUERY':
             // outputData = await this._executeActionNode(node, executionData);
             // Replaced placeholder with actual service call
-            outputData = await this.actionRunnerService.executeAction(node, injectedCredentials, executionContext);
+            nodeOutput = await this.actionRunnerService.executeAction(node, injectedCredentials, executionContext);
             break;
 
           case 'LOGIC_IF':
             const conditionMet = this._executeLogicNode(node, executionContext);
-            outputData = { result: conditionMet };
+            nodeOutput = { result: conditionMet };
             
             // TODO: In a real graph traversal, we would determine the next node here.
             // For this linear implementation, we might just store the result.
@@ -195,7 +268,7 @@ export class ExecutionService {
           default:
             // outputData = await this._executeActionNode(node, executionData);
             // Replaced placeholder with actual service call
-            outputData = await this.actionRunnerService.executeAction(node, injectedCredentials, executionContext);
+            nodeOutput = await this.actionRunnerService.executeAction(node, injectedCredentials, executionContext);
             break;
         }
 
@@ -204,8 +277,8 @@ export class ExecutionService {
           nodeId: node.id,
           nodeName: node.name,
           status: 'SUCCESS',
-          outputData: outputData,
-          startTime: new Date(), // Approximation
+          outputData: nodeOutput,
+          startTime: nodeStartTime, 
           endTime: new Date()
         };
         
@@ -221,24 +294,63 @@ export class ExecutionService {
 
       } catch (error: any) {
         this.logger.error(`Error executing node ${node.name}: ${error.message}`, error.stack, { nodeId: node.id, executionId });
+        nodeStatus = 'FAILED';
+        nodeError = error.message;
         nodeResults.push({
           nodeId: node.id,
           nodeName: node.name,
           status: 'FAILED',
           error: error.message,
-          startTime: new Date(),
+          startTime: nodeStartTime,
           endTime: new Date()
         });
         
         // Stop execution on failure (unless continueOnFail is set)
         executionContext.status = ExecutionStatus.FAILED;
         executionContext.endTime = new Date();
-        return executionContext;
+        // Don't return immediately, let finally block run
+        // return executionContext; 
+      } finally {
+        // Add to Node Logs
+        nodeLogs.push({
+          nodeId: node.id,
+          nodeType: node.type,
+          status: nodeStatus,
+          startTime: nodeStartTime,
+          endTime: new Date(),
+          input: nodeInput,
+          output: nodeOutput,
+          error: nodeError
+        });
+      }
+      
+      if (executionContext.status === ExecutionStatus.FAILED) {
+         break;
       }
     }
 
-    executionContext.status = ExecutionStatus.SUCCESS;
-    executionContext.endTime = new Date();
+    const endTime = new Date();
+    const durationMs = endTime.getTime() - startTime.getTime();
+    
+    // Update Execution Log in DB
+    if (currentExecutionLogId) {
+      try {
+        await this.prisma.executionLog.update({
+          where: { id: currentExecutionLogId },
+          data: {
+            status: executionContext.status === ExecutionStatus.RUNNING ? 'SUCCESS' : 'FAILED',
+            endTime: endTime,
+            durationMs: durationMs,
+            summary: nodeLogs as any // Cast to any for Json compatibility
+          }
+        });
+      } catch (err) {
+        this.logger.error(`Failed to update execution log: ${err.message}`);
+      }
+    }
+
+    executionContext.status = executionContext.status === ExecutionStatus.RUNNING ? ExecutionStatus.SUCCESS : ExecutionStatus.FAILED;
+    executionContext.endTime = endTime;
     return executionContext;
   }
 
@@ -250,6 +362,27 @@ export class ExecutionService {
   async getExecution(executionId: string): Promise<IExecutionResult | null> {
     const execution = await this.prisma.execution.findUnique({ where: { id: executionId } });
     return execution as any;
+  }
+
+  /**
+   * Retrieves all execution logs.
+   */
+  async getExecutionLogs(): Promise<any[]> {
+    return this.prisma.executionLog.findMany({
+      include: { workflow: { select: { name: true } } },
+      orderBy: { startTime: 'desc' },
+      take: 100 // Limit to last 100 for now
+    });
+  }
+
+  /**
+   * Retrieves a single execution log by ID.
+   */
+  async getExecutionLog(id: string): Promise<any> {
+    return this.prisma.executionLog.findUnique({
+      where: { id },
+      include: { workflow: { select: { name: true } } }
+    });
   }
 
   /**

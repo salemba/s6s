@@ -1,6 +1,7 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Zap, GitMerge, Box, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { getExecutionState, getHeaderColor } from '../../utils/execution-status';
 
 export interface BaseNodeData {
   name: string;
@@ -8,16 +9,34 @@ export interface BaseNodeData {
   description?: string;
   executionStatus?: 'RUNNING' | 'SUCCESS' | 'FAILED';
   nodeType?: string; // e.g. TRIGGER_WEBHOOK
+  startTime?: string | Date;
 }
 
 const BaseNode = ({ id, data }: NodeProps<BaseNodeData>) => {
   const isTrigger = data.type === 'Trigger';
+  const [currentState, setCurrentState] = useState(getExecutionState(data.executionStatus, data.startTime));
+
+  useEffect(() => {
+    setCurrentState(getExecutionState(data.executionStatus, data.startTime));
+
+    let interval: NodeJS.Timeout;
+    if (data.executionStatus === 'RUNNING') {
+      interval = setInterval(() => {
+        setCurrentState(getExecutionState(data.executionStatus, data.startTime));
+      }, 60000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [data.executionStatus, data.startTime]);
 
   // Icon selection
   const getIcon = () => {
-    if (data.executionStatus === 'RUNNING') return <Loader2 size={14} className="animate-spin" />;
-    if (data.executionStatus === 'SUCCESS') return <CheckCircle2 size={14} />;
-    if (data.executionStatus === 'FAILED') return <XCircle size={14} />;
+    if (currentState === 'RUNNING') return <Loader2 size={14} className="animate-spin text-white" />;
+    if (currentState === 'SUCCESS') return <CheckCircle2 size={14} className="text-white" />;
+    if (currentState === 'FAILED') return <XCircle size={14} className="text-white" />;
+    if (currentState === 'STUCK') return <Loader2 size={14} className="text-gray-600" />;
     
     if (data.type === 'Trigger') return <Zap size={14} />;
     if (data.type === 'Logic') return <GitMerge size={14} />;
@@ -29,19 +48,15 @@ const BaseNode = ({ id, data }: NodeProps<BaseNodeData>) => {
   let headerBorder = 'border-[#30363d]';
   let iconColor = 'text-gray-400';
   let titleColor = 'text-gray-200';
+  let headerStyle = {};
 
-  if (data.executionStatus === 'RUNNING') {
-    headerBg = 'bg-yellow-900/30';
-    headerBorder = 'border-yellow-700/50';
-    iconColor = 'text-yellow-500';
-  } else if (data.executionStatus === 'SUCCESS') {
-    headerBg = 'bg-green-900/30';
-    headerBorder = 'border-green-700/50';
-    iconColor = 'text-green-500';
-  } else if (data.executionStatus === 'FAILED') {
-    headerBg = 'bg-red-900/30';
-    headerBorder = 'border-red-700/50';
-    iconColor = 'text-red-500';
+  const stateColor = getHeaderColor(currentState);
+  if (stateColor) {
+    headerStyle = { backgroundColor: stateColor };
+    // Reset tailwind bg if we use inline style
+    headerBg = ''; 
+    iconColor = 'text-white';
+    titleColor = 'text-white';
   } else if (isTrigger) {
     iconColor = 'text-blue-400';
   }
@@ -58,7 +73,10 @@ const BaseNode = ({ id, data }: NodeProps<BaseNodeData>) => {
       )}
 
       {/* Node Header */}
-      <div className={`flex items-center gap-3 rounded-t-lg border-b ${headerBorder} px-4 py-3 ${headerBg}`}>
+      <div 
+        className={`flex items-center gap-3 rounded-t-lg border-b ${headerBorder} px-4 py-3 ${headerBg}`}
+        style={headerStyle}
+      >
         <div className={`flex h-8 w-8 items-center justify-center rounded-md bg-[#0d1117] ${iconColor}`}>
           {getIcon()}
         </div>

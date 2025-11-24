@@ -7,12 +7,16 @@ import * as path from 'path';
 import * as XLSX from 'xlsx';
 import { INode, IExecutionResult, NodeType } from '../../../../../packages/shared/src/interfaces/s6s.interface';
 import { resolveDynamicParameters } from '../../../../../packages/shared/src/utils/dynamic-resolver';
+import { OpenRouterNode } from '../../workflow/nodes/integrations/openrouter.node';
 
 @Injectable()
 export class ActionRunnerService {
   private readonly logger = new Logger(ActionRunnerService.name);
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly openRouterNode: OpenRouterNode
+  ) {}
 
   /**
    * Main entry point for executing action nodes.
@@ -36,6 +40,8 @@ export class ActionRunnerService {
         return this._executeExcel(node.config);
       case NodeType.INTEGRATION_FILE_SYSTEM:
         return this._executeFileSystem(node.config);
+      case NodeType.INTEGRATION_OPENROUTER:
+        return this.openRouterNode.run(node, credentials, context);
       case NodeType.TRIGGER_MANUAL:
         // Manual trigger is just a pass-through, no action needed
         return { status: 'success', message: 'Manual trigger executed' };
